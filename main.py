@@ -39,13 +39,159 @@ def recalculate_grid(window_width, window_height, gap):
     return width, height, margin_x, margin_y
 
 def init_board():
-    # Dessiner les pièces aux croisements
-    for i in range(10):  # Pour chaque ligne
-        for j in range(9):  # Pour chaque colonne
-            x = margin_x + (j) * gap  # Position X du croisement
-            y = margin_y + (i) * gap  # Position Y du croisement
-            piece_rect = piece_image.get_rect(center=(x, y))  # Centrer l'image sur le croisement
-            window.blit(piece_image, piece_rect)  # Dessiner l'image
+    # Chariot
+    B_Chariot_image = pygame.image.load("images/b_Chariot.png")  # Remplacez "piece.png" par le chemin de votre image
+    B_Chariot_image = pygame.transform.scale(B_Chariot_image, (50, 50))
+
+    for j in range(2):  # Pour chaque colonne
+        x = margin_x + (j) * width  # Position X du croisement
+        y = margin_y  # Position Y du croisement
+        piece_rect = B_Chariot_image.get_rect(center=(x, y))  # Centrer l'image sur le croisement
+        window.blit(B_Chariot_image, piece_rect)  # Dessiner l'image
+
+
+    R_Chariot_image = pygame.image.load("images/r_Chariot.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Chariot_image = pygame.transform.scale(R_Chariot_image, (50, 50))
+
+    for j in range(2):  # Pour chaque colonne
+        x = margin_x + (j) * width  # Position X du croisement
+        y = margin_y + height # Position Y du croisement
+        piece_rect = R_Chariot_image.get_rect(center=(x, y))  # Centrer l'image sur le croisement
+        window.blit(R_Chariot_image, piece_rect)  # Dessiner l'image
+
+
+    # Horse
+    B_Horse_image = pygame.image.load("images/b_Horse.png")  # Remplacez "piece.png" par le chemin de votre image
+    B_Horse_image = pygame.transform.scale(B_Horse_image, (50, 50))
+    black_positions = [1, 7]
+    for pos in black_positions:  
+        x = margin_x + pos * gap
+        y = margin_y
+        piece_rect = B_Horse_image.get_rect(center=(x, y))
+        window.blit(B_Horse_image, piece_rect)
+
+
+    R_Horse_image = pygame.image.load("images/r_Horse.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Horse_image = pygame.transform.scale(R_Horse_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+    red_positions = [1, 7]
+    for pos in red_positions:  
+        x = margin_x + pos * gap
+        y = margin_y + height
+        piece_rect = R_Horse_image.get_rect(center=(x, y))
+        window.blit(R_Horse_image, piece_rect)
+
+    # Elephant
+    B_Elephant_image = pygame.image.load("images/b_Elephant.png")
+    B_Elephant_image = pygame.transform.scale(B_Elephant_image, (50, 50))
+    black_positions = [2, 6]
+    for pos in black_positions:  
+        x = margin_x + pos * gap
+        y = margin_y
+        piece_rect = B_Elephant_image.get_rect(center=(x, y))
+        window.blit(B_Elephant_image, piece_rect)
+
+
+    R_Elephant_image = pygame.image.load("images/r_Elephant.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Elephant_image = pygame.transform.scale(R_Elephant_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+    red_positions = [2, 6]
+    for pos in red_positions:  
+        x = margin_x + pos * gap
+        y = margin_y + height
+        piece_rect = R_Elephant_image.get_rect(center=(x, y))
+        window.blit(R_Elephant_image, piece_rect)
+
+
+    # Advisor
+    B_Advisor_image = pygame.image.load("images/b_Advisor.png")
+    B_Advisor_image = pygame.transform.scale(B_Advisor_image, (50, 50))
+    black_positions = [3, 5]
+    for pos in black_positions:  
+        x = margin_x + pos * gap
+        y = margin_y
+        piece_rect = B_Advisor_image.get_rect(center=(x, y))
+        window.blit(B_Advisor_image, piece_rect)
+
+
+    R_Advisor_image = pygame.image.load("images/r_Advisor.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Advisor_image = pygame.transform.scale(R_Advisor_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+    red_positions = [3, 5]
+    for pos in red_positions:  
+        x = margin_x + pos * gap
+        y = margin_y + height
+        piece_rect = R_Advisor_image.get_rect(center=(x, y))
+        window.blit(R_Advisor_image, piece_rect)
+
+
+    # General
+    B_General_image = pygame.image.load("images/b_General.png")
+    B_General_image = pygame.transform.scale(B_General_image, (50, 50))
+
+    x = margin_x + 4 * gap
+    y = margin_y
+    piece_rect = B_General_image.get_rect(center=(x, y))
+    window.blit(B_General_image, piece_rect)
+
+
+    R_General_image = pygame.image.load("images/r_General.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_General_image = pygame.transform.scale(R_General_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+
+    x = margin_x + 4 * gap
+    y = margin_y + height
+    piece_rect = R_General_image.get_rect(center=(x, y))
+    window.blit(R_General_image, piece_rect)
+
+    # Cannon
+    B_Cannon_image = pygame.image.load("images/b_Cannon.png")
+    B_Cannon_image = pygame.transform.scale(B_Cannon_image, (50, 50))
+    black_positions = [1, 7]
+    for pos in black_positions:  
+        x = margin_x + pos * gap
+        y = margin_y + 2 * gap
+        piece_rect = B_Cannon_image.get_rect(center=(x, y))
+        window.blit(B_Cannon_image, piece_rect)
+
+
+    R_Cannon_image = pygame.image.load("images/r_Cannon.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Cannon_image = pygame.transform.scale(R_Cannon_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+    red_positions = [1, 7]
+    for pos in red_positions:  
+        x = margin_x + pos * gap
+        y = margin_y + 7 * gap
+        piece_rect = R_Cannon_image.get_rect(center=(x, y))
+        window.blit(R_Cannon_image, piece_rect)
+
+    # Soldier
+    B_Soldier_image = pygame.image.load("images/b_Soldier.png")
+    B_Soldier_image = pygame.transform.scale(B_Soldier_image, (50, 50))
+
+    for j in range(9):  
+        if j % 2 == 0:
+            x = margin_x + j * gap
+            y = margin_y + 3 * gap
+            piece_rect = B_Soldier_image.get_rect(center=(x, y))
+            window.blit(B_Soldier_image, piece_rect)
+
+
+    R_Soldier_image = pygame.image.load("images/r_Soldier.png")  # Remplacez "piece.png" par le chemin de votre image
+    R_Soldier_image = pygame.transform.scale(R_Soldier_image, (50, 50))
+
+    # Dessiner les pièces rouges en bas
+    for j in range(9):
+        if j % 2 == 0:
+            x = margin_x + j * gap
+            y = margin_y + 6 * gap
+            piece_rect = R_Soldier_image.get_rect(center=(x, y))
+            window.blit(R_Soldier_image, piece_rect)
 
 
 
