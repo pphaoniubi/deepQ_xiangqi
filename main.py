@@ -1,34 +1,15 @@
 import pygame
 import sys
+from attributes import *
+from board_piece import *
 
 # Initialisation de Pygame
 pygame.init()
 
-# Définir l'espacement entre les lignes
-gap = 66  # Espacement des lignes (vous pouvez ajuster cette valeur)
-
-# Calcul automatique de la taille de la fenêtre
-width = gap * 8  # 9 colonnes verticales
-height = gap * 9  # 10 lignes horizontales
-
-# Taille de la fenêtre
-window_width = width + 160  # Ajouter une marge pour le centrage horizontal
-window_height = height + 160  # Ajouter une marge pour le centrage vertical
 window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
 
 # Définir un titre pour la fenêtre
 pygame.display.set_caption('Grille 10x9')
-
-# Couleurs
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-
-# Calcul des marges pour centrer la grille
-margin_x = (window_width - width) // 2
-margin_y = (window_height - height) // 2
-
-# Dictionnaire pour stocker les pièces et leurs rectangles
-pieces = {}
 
 # Fonction pour recalculer les marges et dimensions de la grille
 def recalculate_grid(window_width, window_height, gap):
@@ -233,10 +214,10 @@ while running:
                 # Calculer la nouvelle position de la pièce
                 new_x = mouse_pos[0] - dragging_offset_x - 25
                 new_y = mouse_pos[1] - dragging_offset_y - 25
-                print(mouse_pos[0], mouse_pos[1])
+
                 # Récupérer l'image et le rect de la pièce
                 image, rect = pieces[type_piece]
-
+                chariot_all_moves()
                 # Mettre à jour les coordonnées du rect (déplacement de la pièce)
                 rect.x = new_x
                 rect.y = new_y
