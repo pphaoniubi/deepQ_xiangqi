@@ -27,8 +27,8 @@ WHITE = (255, 255, 255)
 margin_x = (window_width - width) // 2
 margin_y = (window_height - height) // 2
 
-piece_image = pygame.image.load("images/b_Advisor.png")  # Remplacez "piece.png" par le chemin de votre image
-piece_image = pygame.transform.scale(piece_image, (40, 40))
+# Dictionnaire pour stocker les pièces et leurs rectangles
+pieces = {}
 
 # Fonction pour recalculer les marges et dimensions de la grille
 def recalculate_grid(window_width, window_height, gap):
@@ -47,7 +47,7 @@ def init_board():
         x = margin_x + (j) * width  # Position X du croisement
         y = margin_y  # Position Y du croisement
         piece_rect = B_Chariot_image.get_rect(center=(x, y))  # Centrer l'image sur le croisement
-        window.blit(B_Chariot_image, piece_rect)  # Dessiner l'image
+        pieces[f"Black Chariot {j}"] = (B_Chariot_image, piece_rect)  # Dessiner l'image
 
 
     R_Chariot_image = pygame.image.load("images/r_Chariot.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -57,7 +57,7 @@ def init_board():
         x = margin_x + (j) * width  # Position X du croisement
         y = margin_y + height # Position Y du croisement
         piece_rect = R_Chariot_image.get_rect(center=(x, y))  # Centrer l'image sur le croisement
-        window.blit(R_Chariot_image, piece_rect)  # Dessiner l'image
+        pieces[f"Red Chariot {j}"] = (R_Chariot_image, piece_rect)  # Dessiner l'image
 
 
     # Horse
@@ -68,7 +68,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y
         piece_rect = B_Horse_image.get_rect(center=(x, y))
-        window.blit(B_Horse_image, piece_rect)
+        pieces[f"Black Horse {pos}"] = (B_Horse_image, piece_rect)
 
 
     R_Horse_image = pygame.image.load("images/r_Horse.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -80,7 +80,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y + height
         piece_rect = R_Horse_image.get_rect(center=(x, y))
-        window.blit(R_Horse_image, piece_rect)
+        pieces[f"Red Horse {pos}"] = (R_Horse_image, piece_rect)
 
     # Elephant
     B_Elephant_image = pygame.image.load("images/b_Elephant.png")
@@ -90,7 +90,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y
         piece_rect = B_Elephant_image.get_rect(center=(x, y))
-        window.blit(B_Elephant_image, piece_rect)
+        pieces[f"Black Elephant {pos}"] = (B_Elephant_image, piece_rect)
 
 
     R_Elephant_image = pygame.image.load("images/r_Elephant.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -102,7 +102,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y + height
         piece_rect = R_Elephant_image.get_rect(center=(x, y))
-        window.blit(R_Elephant_image, piece_rect)
+        pieces[f"Red Elephant {pos}"] = (R_Elephant_image, piece_rect)
 
 
     # Advisor
@@ -113,7 +113,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y
         piece_rect = B_Advisor_image.get_rect(center=(x, y))
-        window.blit(B_Advisor_image, piece_rect)
+        pieces[f"Black Advisor {pos}"] = (B_Advisor_image, piece_rect)
 
 
     R_Advisor_image = pygame.image.load("images/r_Advisor.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -125,7 +125,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y + height
         piece_rect = R_Advisor_image.get_rect(center=(x, y))
-        window.blit(R_Advisor_image, piece_rect)
+        pieces[f"Red Advisor {pos}"] = (R_Advisor_image, piece_rect)
 
 
     # General
@@ -135,7 +135,7 @@ def init_board():
     x = margin_x + 4 * gap
     y = margin_y
     piece_rect = B_General_image.get_rect(center=(x, y))
-    window.blit(B_General_image, piece_rect)
+    pieces[f"Black General"] = (B_General_image, piece_rect)
 
 
     R_General_image = pygame.image.load("images/r_General.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -146,7 +146,7 @@ def init_board():
     x = margin_x + 4 * gap
     y = margin_y + height
     piece_rect = R_General_image.get_rect(center=(x, y))
-    window.blit(R_General_image, piece_rect)
+    pieces[f"Red General"] = (R_General_image, piece_rect)
 
     # Cannon
     B_Cannon_image = pygame.image.load("images/b_Cannon.png")
@@ -156,7 +156,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y + 2 * gap
         piece_rect = B_Cannon_image.get_rect(center=(x, y))
-        window.blit(B_Cannon_image, piece_rect)
+        pieces[f"Black Cannon {pos}"] = (B_Cannon_image, piece_rect)
 
 
     R_Cannon_image = pygame.image.load("images/r_Cannon.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -168,7 +168,7 @@ def init_board():
         x = margin_x + pos * gap
         y = margin_y + 7 * gap
         piece_rect = R_Cannon_image.get_rect(center=(x, y))
-        window.blit(R_Cannon_image, piece_rect)
+        pieces[f"Red Cannon {pos}"] = (R_Cannon_image, piece_rect)
 
     # Soldier
     B_Soldier_image = pygame.image.load("images/b_Soldier.png")
@@ -179,7 +179,7 @@ def init_board():
             x = margin_x + j * gap
             y = margin_y + 3 * gap
             piece_rect = B_Soldier_image.get_rect(center=(x, y))
-            window.blit(B_Soldier_image, piece_rect)
+            pieces[f"Black Soldier {j}"] = (B_Soldier_image, piece_rect)
 
 
     R_Soldier_image = pygame.image.load("images/r_Soldier.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -191,17 +191,57 @@ def init_board():
             x = margin_x + j * gap
             y = margin_y + 6 * gap
             piece_rect = R_Soldier_image.get_rect(center=(x, y))
-            window.blit(R_Soldier_image, piece_rect)
+            pieces[f"Red Soldier {j}"] = (R_Soldier_image, piece_rect)
 
-
+def draw_pieces():
+    for image, rect in pieces.values():
+        window.blit(image, rect)
 
 # Boucle principale du jeu
 running = True
+dragging_piece = None
 while running:
     # Gestion des événements
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False  # Quitter la boucle lorsque l'on ferme la fenêtre
+
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Détecter si une pièce a été cliquée
+            mouse_pos = event.pos
+            for i, (piece_name, (image, rect)) in enumerate(pieces.items()):
+                if rect.collidepoint(mouse_pos):
+
+                    center_x, center_y = rect.centerx, rect.centery
+                    # La position de la pièce est déjà contenue dans rect.x et rect.y
+                    distance = ((mouse_pos[0] - center_x) ** 2 + (mouse_pos[1] - center_y) ** 2) ** 0.5
+                    print(distance)
+                    if distance <= 25:  # Si le clic est dans le rayon de la pièce
+                        dragging_piece = (piece_name, i)  # Stocker le nom de la pièce et son index
+                        dragging_offset_x = mouse_pos[0] - center_x
+                        dragging_offset_y = mouse_pos[1] - center_y
+                        print(f"Sélection de {piece_name} à la position ({rect.x}, {rect.y})")
+                        break  # Sortir de la boucle une fois qu'une pièce a été sélectionnée
+                
+        elif event.type == pygame.MOUSEMOTION:
+            # Déplacer la pièce sélectionnée
+            if dragging_piece:
+                mouse_pos = event.pos
+                type_piece, i = dragging_piece
+                # Calculer la nouvelle position de la pièce
+                new_x = mouse_pos[0] - dragging_offset_x
+                new_y = mouse_pos[1] - dragging_offset_y
+
+                # Récupérer l'image et le rect de la pièce
+                image, rect = pieces[type_piece]
+
+                # Mettre à jour les coordonnées du rect (déplacement de la pièce)
+                rect.x = new_x - margin_x
+                rect.y = new_y - margin_y
+
+                # Réassigner l'image et la nouvelle position du rect dans le dictionnaire
+                pieces[type_piece] = (image, rect)
+
 
         elif event.type == pygame.VIDEORESIZE:  # Détecter le redimensionnement
             window_width, window_height = event.w, event.h
@@ -210,17 +250,16 @@ while running:
             width, height, margin_x, margin_y = recalculate_grid(window_width, window_height, gap)
     
     
-    # Remplir l'arrière-plan (noir)
     window.fill(WHITE)
 
     # Dessiner 10 lignes horizontales
     for i in range(8):
-        y = margin_y + (i + 1) * gap  # Position verticale des lignes horizontales
+        y = margin_y + (i + 1) * gap
         pygame.draw.line(window, BLACK, (margin_x, y), (margin_x + width, y), 2)  # Ligne horizontale
 
     # Dessiner 9 lignes verticales
     for j in range(7):
-        x = margin_x + (j + 1) * gap  # Position horizontale des lignes verticales
+        x = margin_x + (j + 1) * gap
         pygame.draw.line(window, BLACK, (x, margin_y), (x, margin_y + height), 2)  # Ligne verticale
 
     # Dessiner la frontière (rectangle autour de la grille)
@@ -229,7 +268,7 @@ while running:
 
 
     init_board()
-
+    draw_pieces()
     # Mise à jour de l'écran
     pygame.display.flip()
 
