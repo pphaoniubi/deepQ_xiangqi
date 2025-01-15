@@ -9,29 +9,8 @@ pygame.init()
 window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
 
 # Définir un titre pour la fenêtre
-pygame.display.set_caption('Grille 10x9')
+pygame.display.set_caption('xiangqi')
 
-def find_closest_number(arr, target):
-    # Initialize the closest value with a very high difference
-    closest_value = arr[0]
-    smallest_diff = abs(target - closest_value)
-
-    # Loop through the array and find the closest value
-    for num in arr:
-        diff = abs(target - num)
-        if diff < smallest_diff:
-            closest_value = num
-            smallest_diff = diff
-
-    return closest_value
-
-# Fonction pour recalculer les marges et dimensions de la grille
-def recalculate_grid(window_width, window_height, gap):
-    width = gap * 8
-    height = gap * 9
-    margin_x = (window_width - width) // 2
-    margin_y = (window_height - height) // 2
-    return width, height, margin_x, margin_y
 
 
 def draw_grid():
@@ -275,10 +254,11 @@ while running:
                 # Check boundaries and validate the move
                 if (0 <= new_x <= window_width - rect.width and
                     0 <= new_y <= window_height - rect.height):
-                    if all_moves(piece_name, new_x, new_y, initial_position[0], initial_position[1]):
+                    rect.x = find_closest_number(grid_x, new_x)
+                    rect.y = find_closest_number(grid_y, new_y)
+                    if (all_moves(piece_name, new_x, new_y, initial_position[0], initial_position[1])
+                    and is_piece_on_grid(piece_name, rect.x, rect.y) is False):
                         # placer-les sur la grille exactement
-                        rect.x = find_closest_number(grid_x, new_x)
-                        rect.y = find_closest_number(grid_y, new_y)
                         pieces[piece_name] = (image, rect)  # Update the piece's position
                         print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
                     else:

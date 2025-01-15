@@ -25,3 +25,41 @@ pieces = {}
 
 grid_x = [55, 121, 187, 253, 319, 385, 451, 517, 583]
 grid_y = [55, 121, 187, 253, 319, 385, 451, 517, 583, 649]
+
+
+def is_piece_on_grid(piece_name, new_x, new_y):
+    if piece_name.find("Black") != -1:
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == new_x and rect.y == new_y \
+            and piece_name != name:
+                if name.find("Red") != -1:
+                    del pieces[name]
+                    break
+                return True
+    elif piece_name.find("Red") != -1:
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == new_x and rect.y == new_y and piece_name != name:
+                return True
+    return False
+
+def find_closest_number(arr, target):
+    # Initialize the closest value with a very high difference
+    closest_value = arr[0]
+    smallest_diff = abs(target - closest_value)
+
+    # Loop through the array and find the closest value
+    for num in arr:
+        diff = abs(target - num)
+        if diff < smallest_diff:
+            closest_value = num
+            smallest_diff = diff
+
+    return closest_value
+
+# Fonction pour recalculer les marges et dimensions de la grille
+def recalculate_grid(window_width, window_height, gap):
+    width = gap * 8
+    height = gap * 9
+    margin_x = (window_width - width) // 2
+    margin_y = (window_height - height) // 2
+    return width, height, margin_x, margin_y
