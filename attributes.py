@@ -22,3 +22,6 @@ margin_y = (window_height - height) // 2
 
 # Dictionnaire pour stocker les pièces et leurs rectangles
 pieces = {}
+
+grid_x = [55, 121, 187, 253, 319, 385, 451, 517, 583]
+grid_y = [55, 121, 187, 253, 319, 385, 451, 517, 583, 649]

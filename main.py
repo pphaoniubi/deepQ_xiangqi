@@ -11,6 +11,20 @@ window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE
 # Définir un titre pour la fenêtre
 pygame.display.set_caption('Grille 10x9')
 
+def find_closest_number(arr, target):
+    # Initialize the closest value with a very high difference
+    closest_value = arr[0]
+    smallest_diff = abs(target - closest_value)
+
+    # Loop through the array and find the closest value
+    for num in arr:
+        diff = abs(target - num)
+        if diff < smallest_diff:
+            closest_value = num
+            smallest_diff = diff
+
+    return closest_value
+
 # Fonction pour recalculer les marges et dimensions de la grille
 def recalculate_grid(window_width, window_height, gap):
     width = gap * 8
@@ -18,6 +32,22 @@ def recalculate_grid(window_width, window_height, gap):
     margin_x = (window_width - width) // 2
     margin_y = (window_height - height) // 2
     return width, height, margin_x, margin_y
+
+
+def draw_grid():
+    # Dessiner 10 lignes horizontales
+    for i in range(8):
+        y = margin_y + (i + 1) * gap
+        pygame.draw.line(window, BLACK, (margin_x, y), (margin_x + width, y), 2)  # Ligne horizontale
+
+    # Dessiner 9 lignes verticales
+    for j in range(7):
+        x = margin_x + (j + 1) * gap
+        pygame.draw.line(window, BLACK, (x, margin_y), (x, margin_y + height), 2)  # Ligne verticale
+        
+    # frontiere
+    border_thickness = 2  # Épaisseur de la bordure
+    pygame.draw.rect(window, BLACK, (margin_x, margin_y, width, height), border_thickness)
 
 def init_board():
     # Chariot
@@ -245,9 +275,10 @@ while running:
                 # Check boundaries and validate the move
                 if (0 <= new_x <= window_width - rect.width and
                     0 <= new_y <= window_height - rect.height):
-                    if all_moves(piece_name, new_x, new_y, rect.x, rect.y):
-                        rect.x = new_x
-                        rect.y = new_y
+                    if all_moves(piece_name, new_x, new_y, initial_position[0], initial_position[1]):
+                        # placer-les sur la grille exactement
+                        rect.x = find_closest_number(grid_x, new_x)
+                        rect.y = find_closest_number(grid_y, new_y)
                         pieces[piece_name] = (image, rect)  # Update the piece's position
                         print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
                     else:
@@ -265,22 +296,7 @@ while running:
                 initial_position = None  # Reset initial position
     
     window.fill(WHITE)
-
-    # Dessiner 10 lignes horizontales
-    for i in range(8):
-        y = margin_y + (i + 1) * gap
-        pygame.draw.line(window, BLACK, (margin_x, y), (margin_x + width, y), 2)  # Ligne horizontale
-
-    # Dessiner 9 lignes verticales
-    for j in range(7):
-        x = margin_x + (j + 1) * gap
-        pygame.draw.line(window, BLACK, (x, margin_y), (x, margin_y + height), 2)  # Ligne verticale
-
-    # Dessiner la frontière (rectangle autour de la grille)
-    border_thickness = 2  # Épaisseur de la bordure
-    pygame.draw.rect(window, BLACK, (margin_x, margin_y, width, height), border_thickness)
-
-
+    draw_grid()
     draw_pieces()
     # Mise à jour de l'écran
     pygame.display.flip()

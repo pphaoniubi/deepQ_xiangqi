@@ -2,11 +2,9 @@ from attributes import *
 
 def all_moves(piece_name, new_x, new_y, init_x, init_y):
 
-    image, rect = pieces[f"Black Chariot 0"]
-
     if piece_name.startswith("Black Chariot") or piece_name.startswith("Red Chariot"):
         # to implement
-        if ((new_x == init_x and new_y != init_y) or (new_x != init_x and new_y == init_y)):
+        if ((abs(new_x - init_x) <= 10 and new_y != init_y) or (new_x != init_x and abs(new_y - init_y) <= 10)):
             return True
         
     elif piece_name.startswith("Black Horse") or piece_name.startswith("Red Horse"):
