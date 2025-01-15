@@ -9,8 +9,25 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
             return True
         
     elif piece_name.startswith("Black Horse") or piece_name.startswith("Red Horse"):
-        # to implement
-            return True
+        potential_moves = [
+            (init_x + 2 * gap, init_y + gap),  # Bas-droite
+            (init_x + 2 * gap, init_y - gap),  # Haut-droite
+            (init_x - 2 * gap, init_y + gap),  # Bas-gauche
+            (init_x - 2 * gap, init_y - gap),  # Haut-gauche
+            (init_x + gap, init_y + 2 * gap),  # Droite-bas
+            (init_x - gap, init_y + 2 * gap),  # Droite-haut
+            (init_x + gap, init_y - 2 * gap),  # Gauche-bas
+            (init_x - gap, init_y - 2 * gap)   # Gauche-haut
+        ]
+        valid_moves = []
+        for nx, ny in potential_moves:
+            # Vérifier si la position est dans les limites du plateau
+            if 55 <= nx <= 583 and 55 <= ny <= 649:
+                valid_moves.append((nx, ny))
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
     
     elif piece_name.startswith("Black Elephant") or piece_name.startswith("Red Elephant"):
         # to implement

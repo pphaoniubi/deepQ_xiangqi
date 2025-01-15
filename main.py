@@ -248,6 +248,8 @@ while running:
                 piece_name, image, rect = selected_piece  # Unpack the selected piece
                 new_x = mouse_pos[0] - dragging_offset_x
                 new_y = mouse_pos[1] - dragging_offset_y
+                new_x = find_closest_number(grid_x, new_x)
+                new_y = find_closest_number(grid_y, new_y)
 
                 print(f"Attempting to place {piece_name} at ({new_x}, {new_y})")
 
