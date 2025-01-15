@@ -179,11 +179,15 @@ def draw_pieces():
         window.blit(image, rect)
 
 init_board()
+# Board dimensions
+print("Board params (width, heigth, margin_x, margin_y): ", width, height, margin_x, margin_y)
 # Boucle principale du jeu
 running = True
 dragging_piece = None
 dragging_offset_x = 0
 dragging_offset_y = 0
+selected_piece = None  # Keep track of the selected piece
+
 while running:
     # Gestion des événements
     for event in pygame.event.get():
@@ -191,55 +195,47 @@ while running:
             running = False  # Quitter la boucle lorsque l'on ferme la fenêtre
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # Détecter si une pièce a été cliquée
             mouse_pos = event.pos
-            for i, (piece_name, (image, rect)) in enumerate(pieces.items()):
-                if rect.collidepoint(mouse_pos):
 
-                    center_x, center_y = rect.centerx, rect.centery
-                    # La position de la pièce est déjà contenue dans rect.x et rect.y
-                    distance = ((mouse_pos[0] - center_x) ** 2 + (mouse_pos[1] - center_y) ** 2) ** 0.5
-                    if distance <= 25:  # Si le clic est dans le rayon de la pièce
-                        dragging_piece = (piece_name, i)  # Stocker le nom de la pièce et son index
-                        dragging_offset_x = mouse_pos[0] - center_x
-                        dragging_offset_y = mouse_pos[1] - center_y
-                        print(f"Sélection de {piece_name} à la position ({rect.x}, {rect.y})")
-                        break  # Sortir de la boucle une fois qu'une pièce a été sélectionnée
-                
-        elif event.type == pygame.MOUSEMOTION:
-            # Déplacer la pièce sélectionnée
-            if dragging_piece:
-                mouse_pos = event.pos
-                type_piece, i = dragging_piece
-                # Calculer la nouvelle position de la pièce
-                new_x = mouse_pos[0] - dragging_offset_x - 25
-                new_y = mouse_pos[1] - dragging_offset_y - 25
+            if selected_piece is None:  # First click: Select a piece
+                for i, (piece_name, (image, rect)) in enumerate(pieces.items()):
+                    if rect.collidepoint(mouse_pos):  # Check if the click is on a piece
+                        center_x, center_y = rect.centerx, rect.centery
+                        distance = ((mouse_pos[0] - center_x) ** 2 + (mouse_pos[1] - center_y) ** 2) ** 0.5
+                        if distance <= 25:  # Ensure the click is within the piece's radius
+                            selected_piece = (piece_name, image, rect)  # Store the selected piece
+                            print(f"Selected {piece_name} at position ({rect.x}, {rect.y})")
+                            break  # Exit the loop once a piece is selected
 
-                # Récupérer l'image et le rect de la pièce
-                image, rect = pieces[type_piece]
-                chariot_all_moves()
-                # Mettre à jour les coordonnées du rect (déplacement de la pièce)
-                rect.x = new_x
-                rect.y = new_y
+            elif selected_piece is not None:  # Second click: Place the piece
+                # Unpack the selected piece
+                piece_name, image, rect = selected_piece
 
-                # Réassigner l'image et la nouvelle position du rect dans le dictionnaire
-                pieces[type_piece] = (image, rect)
+                # Optional: Check if the placement is valid (within grid bounds, no overlap)
+                # For example, check if the piece is within the grid boundaries:
+                if (0 <= rect.x <= window_width - rect.width and
+                    0 <= rect.y <= window_height - rect.height):
+                    #Check for validity of position and possibly update var valid-placement (to implement)
+                    if (True): #TO REPLACE WITH if (all_moves(piece_name, rect.x, rect.y, mouse_pos[0] - rect.width // 2, mouse_pos[1] - rect.height // 2)):
+                        # Move the piece to the new position (center the piece on the click)
+                        rect.x = mouse_pos[0] - rect.width // 2
+                        rect.y = mouse_pos[1] - rect.height // 2
+                        # Update the piece's position in the dictionary
+                        pieces[piece_name] = (image, rect)
+                        print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
+                    else:
+                        print(f"Invalid placement for {piece_name}. Invalid move!")
+                else:
+                    print(f"Invalid placement for {piece_name}. Out of bounds!")
 
-        # Détecter le relâchement du bouton de la souris (fin du drag)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if dragging_piece:
-                # Vous pouvez ajouter ici la logique de validation de placement, si nécessaire
-                print(f"Relâché la pièce {dragging_piece[0]} à la position finale.")
-                
-                # Mettre fin au "dragging" en réinitialisant la variable dragging_piece
-                dragging_piece = None
+                # Reset the selected piece after placing it
+                selected_piece = None
 
         elif event.type == pygame.VIDEORESIZE:  # Détecter le redimensionnement
             window_width, window_height = event.w, event.h
             window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
             # Recalculer les dimensions de la grille
             width, height, margin_x, margin_y = recalculate_grid(window_width, window_height, gap)
-    
     
     window.fill(WHITE)
 
