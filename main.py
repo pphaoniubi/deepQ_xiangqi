@@ -19,6 +19,26 @@ def recalculate_grid(window_width, window_height, gap):
     margin_y = (window_height - height) // 2
     return width, height, margin_x, margin_y
 
+# Function to generate a 2D array of grid intersections
+def gridpoint_coordinates(window_width, window_height, gap):
+    # Recalculate grid dimensions and margins
+    _, _, margin_x, margin_y = recalculate_grid(window_width, window_height, gap)  # Ignore width and height
+    
+    # Create the 2D array to store coordinates
+    coordinates = []
+    
+    for row in range(10):  # 10 horizontal lines
+        row_coords = []
+        for col in range(9):  # 9 vertical lines
+            # Calculate the x and y coordinates of each intersection
+            x = margin_x + col * gap
+            y = margin_y + row * gap
+            row_coords.append((x, y))
+        coordinates.append(row_coords)
+
+    print(coordinates)
+    return coordinates
+
 def init_board():
     # Chariot
     B_Chariot_image = pygame.image.load("images/b_Chariot.png")  # Remplacez "piece.png" par le chemin de votre image
@@ -181,6 +201,7 @@ def draw_pieces():
 init_board()
 # Board dimensions
 print("Board params (width, heigth, margin_x, margin_y): ", width, height, margin_x, margin_y)
+gridpoint_coordinates(window_width, window_height, gap)
 # Boucle principale du jeu
 running = True
 dragging_piece = None
