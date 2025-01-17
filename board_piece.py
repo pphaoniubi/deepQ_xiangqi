@@ -42,7 +42,40 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
     
     elif piece_name.startswith("Black Elephant") or piece_name.startswith("Red Elephant"):
         # to implement
-            return True
+        potential_moves = [
+            (init_x + 2 * gap, init_y + 2 * gap),
+            (init_x + 2 * gap, init_y - 2 * gap),
+            (init_x - 2 * gap, init_y + 2 * gap),
+            (init_x - 2 * gap, init_y - 2 * gap),
+        ]
+
+        potential_coordinates_black = [
+            (187, 55),  # Bas-droite
+            (451, 5),  # Haut-droite
+            (55, 187),  # Bas-gauche
+            (187, 319),  # Haut-gauche
+            (319, 187),  # Droite-bas
+            (451, 319),  # Droite-haut
+            (583, 187),  # Gauche-bas
+        ]
+        valid_moves = []
+        for nx, ny in potential_moves:
+            # Vérifier si la position est dans les limites du plateau
+            if piece_name.startswith("Black Elephant"):
+                if 55 <= nx <= 583 and 55 <= ny <= 319:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+            if piece_name.startswith("Red Elephant"):
+                if 55 <= nx <= 583 and 385 <= ny <= 649:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
+
     
     elif piece_name.startswith("Black Advisor") or piece_name.startswith("Red Advisor"):
         # to implement
@@ -58,6 +91,6 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
     
     elif piece_name.startswith("Black Soldier") or piece_name.startswith("Red Soldier"):
         # to implement
-            return False
+            return True
 
     return False
