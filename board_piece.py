@@ -4,9 +4,23 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
 
     if piece_name.startswith("Black Chariot") or piece_name.startswith("Red Chariot"):
         # to implement
-        if ((abs(new_x - init_x) <= 10 and new_y != init_y) 
-            or (new_x != init_x and abs(new_y - init_y) <= 10)):
-            return True
+        potential_moves = [
+                (init_x, init_y + gap),  # En avant
+                (init_x, init_y - gap),  # En arrière
+                (init_x - gap, init_y),  # À gauche
+                (init_x + gap, init_y),  # À droite
+            ]
+        
+        valid_moves = []
+
+        for nx, ny in potential_moves:
+            if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
         
     elif piece_name.startswith("Black Horse") or piece_name.startswith("Red Horse"):
         potential_moves = [
@@ -124,7 +138,23 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
     
     elif piece_name.startswith("Black Cannon") or piece_name.startswith("Red Cannon"):
         # to implement
-            return True
+        potential_moves = [
+                (init_x, init_y + gap),  # En avant
+                (init_x, init_y - gap),  # En arrière
+                (init_x - gap, init_y),  # À gauche
+                (init_x + gap, init_y),  # À droite
+            ]
+        
+        valid_moves = []
+
+        for nx, ny in potential_moves:
+            if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
     
     elif piece_name.startswith("Black Soldier"): 
         valid_moves = []
