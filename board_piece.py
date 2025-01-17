@@ -49,15 +49,6 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
             (init_x - 2 * gap, init_y - 2 * gap),
         ]
 
-        potential_coordinates_black = [
-            (187, 55),  # Bas-droite
-            (451, 5),  # Haut-droite
-            (55, 187),  # Bas-gauche
-            (187, 319),  # Haut-gauche
-            (319, 187),  # Droite-bas
-            (451, 319),  # Droite-haut
-            (583, 187),  # Gauche-bas
-        ]
         valid_moves = []
         for nx, ny in potential_moves:
             # Vérifier si la position est dans les limites du plateau
@@ -79,18 +70,118 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
     
     elif piece_name.startswith("Black Advisor") or piece_name.startswith("Red Advisor"):
         # to implement
-            return True
+        potential_moves = [
+            (init_x + gap, init_y + gap),
+            (init_x + gap, init_y - gap),
+            (init_x - gap, init_y + gap),
+            (init_x - gap, init_y - gap),
+        ]
+        
+        valid_moves = []
+        for nx, ny in potential_moves:
+            # Vérifier si la position est dans les limites du plateau
+            if piece_name.startswith("Black Advisor"):
+                if 253 <= nx <= 385 and 55 <= ny <= 187:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+            if piece_name.startswith("Red Advisor"):
+                if 253 <= nx <= 385 and 517 <= ny <= 649:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
     
     elif piece_name.startswith("Black General") or piece_name.startswith("Red General"):
         # to implement
-            return True
+        potential_moves = [
+            (init_x + gap, init_y),
+            (init_x - gap, init_y),
+            (init_x, init_y + gap),
+            (init_x, init_y - gap),
+        ]
+        
+        valid_moves = []
+        for nx, ny in potential_moves:
+            # Vérifier si la position est dans les limites du plateau
+            if piece_name.startswith("Black General"):
+                if 253 <= nx <= 385 and 55 <= ny <= 187:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+            if piece_name.startswith("Red General"):
+                if 253 <= nx <= 385 and 517 <= ny <= 649:
+                    if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
     
     elif piece_name.startswith("Black Cannon") or piece_name.startswith("Red Cannon"):
         # to implement
             return True
     
-    elif piece_name.startswith("Black Soldier") or piece_name.startswith("Red Soldier"):
-        # to implement
-            return True
+    elif piece_name.startswith("Black Soldier"): 
+        valid_moves = []
 
+        # Vérifier si la pièce a traversé le fleuve (ici, y = 5 est la ligne du fleuve)
+        has_crossed_river = (init_y >= 5 * gap + 55)
+
+        # Mouvement vers l'avant (avant la ligne du fleuve ou après)
+        if has_crossed_river:
+            # Après avoir traversé le fleuve, on peut aller à gauche, à droite ou en avant
+            potential_moves = [
+                (init_x, init_y + gap),  # En avant
+                (init_x - gap, init_y),  # À gauche
+                (init_x + gap, init_y),  # À droite
+            ]
+        else:
+            # Avant le fleuve, on ne peut aller que vers l'avant
+            potential_moves = [
+                (init_x, init_y + gap),  # En avant
+            ]
+                # Vérifier les déplacements valides dans les limites du plateau
+        for nx, ny in potential_moves:
+            if 55 <= nx <= 583 and 55 <= ny <= 649:
+                # Ajouter le mouvement à la liste des mouvements valides
+                valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
+    elif piece_name.startswith("Red Soldier"):
+        valid_moves = []
+
+        # Vérifier si la pièce a traversé le fleuve (ici, y = 5 est la ligne du fleuve)
+        has_crossed_river = (init_y <= 4 * gap + 55)
+
+        # Mouvement vers l'avant (avant la ligne du fleuve ou après)
+        if has_crossed_river:
+            # Après avoir traversé le fleuve, on peut aller à gauche, à droite ou en avant
+            potential_moves = [
+                (init_x, init_y - gap),  # En avant
+                (init_x - gap, init_y),  # À gauche
+                (init_x + gap, init_y),  # À droite
+            ]
+        else:
+            # Avant le fleuve, on ne peut aller que vers l'avant
+            potential_moves = [
+                (init_x, init_y - gap),  # En avant
+            ]
+                # Vérifier les déplacements valides dans les limites du plateau
+        for nx, ny in potential_moves:
+            if 55 <= nx <= 583 and 55 <= ny <= 649:
+                # Ajouter le mouvement à la liste des mouvements valides
+                valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
     return False
