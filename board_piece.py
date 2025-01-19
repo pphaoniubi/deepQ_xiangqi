@@ -4,11 +4,17 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
 
     if piece_name.startswith("Black Chariot") or piece_name.startswith("Red Chariot"):
         # to implement
+        num_gap_x = 0
+        num_gap_y = 0
+        if (new_x != init_x and new_y == init_y):
+            num_gap_x = abs(new_x - init_x) / gap
+        elif (new_x == init_x and new_y != init_y):
+            num_gap_y = abs(new_y - init_y) / gap
         potential_moves = [
-                (init_x, init_y + gap),  # En avant
-                (init_x, init_y - gap),  # En arrière
-                (init_x - gap, init_y),  # À gauche
-                (init_x + gap, init_y),  # À droite
+                (init_x, init_y + gap * num_gap_y),  # En avant
+                (init_x, init_y - gap * num_gap_y),  # En arrière
+                (init_x - num_gap_x * gap, init_y),  # À gauche
+                (init_x + num_gap_x * gap, init_y),  # À droite
             ]
         
         valid_moves = []
@@ -138,12 +144,19 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
     
     elif piece_name.startswith("Black Cannon") or piece_name.startswith("Red Cannon"):
         # to implement
+        num_gap_x = 0
+        num_gap_y = 0
+        if (new_x != init_x and new_y == init_y):
+            num_gap_x = abs(new_x - init_x) / gap
+        elif (new_x == init_x and new_y != init_y):
+            num_gap_y = abs(new_y - init_y) / gap
         potential_moves = [
-                (init_x, init_y + gap),  # En avant
-                (init_x, init_y - gap),  # En arrière
-                (init_x - gap, init_y),  # À gauche
-                (init_x + gap, init_y),  # À droite
+                (init_x, init_y + gap * num_gap_y),  # En avant
+                (init_x, init_y - gap * num_gap_y),  # En arrière
+                (init_x - num_gap_x * gap, init_y),  # À gauche
+                (init_x + num_gap_x * gap, init_y),  # À droite
             ]
+        
         
         valid_moves = []
 
