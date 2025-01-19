@@ -28,6 +28,11 @@ def draw_grid():
     border_thickness = 2  # Épaisseur de la bordure
     pygame.draw.rect(window, BLACK, (margin_x, margin_y, width, height), border_thickness)
 
+    for point in advisor_point_black:
+        pygame.draw.line(window, BLACK, advisor_center_black, point, 2)
+
+    for point in advisor_point_red:
+        pygame.draw.line(window, BLACK, advisor_center_red, point, 2)
 # Function to generate a 2D array of grid intersections
 def gridpoint_coordinates(window_width, window_height, gap):
     # Recalculate grid dimensions and margins

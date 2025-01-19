@@ -19,6 +19,12 @@ WHITE = (255, 255, 255)
 margin_x = (window_width - width) // 2
 margin_y = (window_height - height) // 2
 
+advisor_point_black = [(253 + 25, 55 + 25), (385 + 25, 55 + 25), (385 + 25, 187 + 25), (253 + 25, 187 + 25)]
+advisor_center_black = (319 + 25, 121 + 25)
+
+advisor_point_red = [(253 + 25, 649 + 25), (385 + 25, 649 + 25), (385 + 25, 517 + 25), (253 + 25, 517 + 25)]
+advisor_center_red = (319 + 25, 583 + 25)
+
 
 # Dictionnaire pour stocker les pièces et leurs rectangles
 pieces = {}
