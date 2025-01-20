@@ -68,3 +68,23 @@ def recalculate_grid(window_width, window_height, gap):
     margin_x = (window_width - width) // 2
     margin_y = (window_height - height) // 2
     return width, height, margin_x, margin_y
+
+def place_or_eliminate(piece_name, x, y):    
+    if piece_name.find("Black") != -1:
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == x and rect.y == y \
+            and piece_name != name:
+                if name.find("Red") != -1:
+                    del pieces[name]
+                    pieces[piece_name] = (image, rect)
+        pieces[piece_name] = (image, rect)
+
+            
+    elif piece_name.find("Red") != -1:
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == x and rect.y == y \
+                and piece_name != name:
+                if name.find("Black") != -1:
+                    del pieces[name]
+                    pieces[piece_name] = (image, rect)
+        pieces[piece_name] = (image, rect)
