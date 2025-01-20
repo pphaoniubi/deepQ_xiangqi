@@ -45,6 +45,23 @@ def is_piece_on_grid(piece_name, new_x, new_y):
             if rect.x == new_x and rect.y == new_y \
                 and piece_name != name:
                     return True
+            
+    elif piece_name == "black_piece":
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == new_x and rect.y == new_y \
+            and "Red" in name:
+                return True
+            else:
+                return False
+            
+    elif piece_name == "red_piece":
+        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
+            if rect.x == new_x and rect.y == new_y \
+            and "Black" in name:
+                return True   
+            else:
+                return False
+
     return False
 
 def find_closest_number(arr, target):

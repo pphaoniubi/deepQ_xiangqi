@@ -199,14 +199,49 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
                 # to implement
                 return True
     
-    elif piece_name.startswith("Black Cannon") or piece_name.startswith("Red Cannon"):
+    elif piece_name.startswith("Black Cannon"):
         # to implement
+        if is_piece_on_grid(piece_name, new_x, new_y) is True:
+            return False
+        
         num_gap_x = 0
         num_gap_y = 0
-        if (new_x != init_x and new_y == init_y):
+        if (new_x != init_x and new_y == init_y): # Déplacement horizontal
             num_gap_x = abs(new_x - init_x) / gap
-        elif (new_x == init_x and new_y != init_y):
+            num_piece_between = 0
+            temp_pos_x = init_x
+            for i in range(round(num_gap_x)):
+                if new_x > init_x:
+                    temp_pos_x += gap
+                else:
+                    temp_pos_x -= gap
+
+                if is_piece_on_grid("red_piece", temp_pos_x, init_y):
+                    num_piece_between += 1
+                elif is_piece_on_grid("black_piece", temp_pos_x, init_y):
+                    num_piece_between += 1
+                    return False
+
+        elif (new_x == init_x and new_y != init_y): #Déplacement vertical
             num_gap_y = abs(new_y - init_y) / gap
+            num_piece_between = 0
+            temp_pos_y = init_y
+            for i in range(round(num_gap_y)):
+                if new_y > init_y:
+                    temp_pos_y += gap
+                else:
+                    temp_pos_y -= gap
+
+                if is_piece_on_grid("red_piece", init_x, temp_pos_y):
+                    num_piece_between += 1
+                elif is_piece_on_grid("black_piece", init_x, temp_pos_y):
+                    num_piece_between += 1
+                    return False
+                        
+        if (num_piece_between > 1):
+            print("more than one piece between")
+            return False
+
         potential_moves = [
                 (init_x, init_y + gap * num_gap_y),  # En avant
                 (init_x, init_y - gap * num_gap_y),  # En arrière
@@ -226,6 +261,67 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
                 # to implement
                 return True
     
+    elif piece_name.startswith("Red Cannon"):
+        # to implement
+        if is_piece_on_grid(piece_name, new_x, new_y) is True:
+            return False
+        
+        num_gap_x = 0
+        num_gap_y = 0
+        if (new_x != init_x and new_y == init_y): # Déplacement horizontal
+            num_gap_x = abs(new_x - init_x) / gap
+            num_piece_between = 0
+            temp_pos_x = init_x
+            for i in range(round(num_gap_x)):
+                if new_x > init_x:
+                    temp_pos_x += gap
+                else:
+                    temp_pos_x -= gap
+
+                if is_piece_on_grid("black_piece", temp_pos_x, init_y):
+                    num_piece_between += 1
+                elif is_piece_on_grid("red_piece", temp_pos_x, init_y):
+                    num_piece_between += 1
+                    return False
+
+        elif (new_x == init_x and new_y != init_y):
+            num_gap_y = abs(new_y - init_y) / gap
+            num_piece_between = 0
+            temp_pos_y = init_y
+            for i in range(round(num_gap_x)):
+                if new_x > init_x:
+                    temp_pos_y += gap
+                else:
+                    temp_pos_y -= gap
+
+                if is_piece_on_grid("black_piece", init_x, temp_pos_y):
+                    num_piece_between += 1
+                elif is_piece_on_grid("red_piece", init_x, temp_pos_y):
+                    num_piece_between += 1
+                    return False
+                        
+            if (num_piece_between > 1):
+                return False
+
+        potential_moves = [
+                (init_x, init_y + gap * num_gap_y),  # En avant
+                (init_x, init_y - gap * num_gap_y),  # En arrière
+                (init_x - num_gap_x * gap, init_y),  # À gauche
+                (init_x + num_gap_x * gap, init_y),  # À droite
+            ]
+        
+        
+        valid_moves = []
+
+        for nx, ny in potential_moves:
+            if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
+
     elif piece_name.startswith("Black Soldier"): 
         valid_moves = []
 
