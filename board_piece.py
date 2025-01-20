@@ -2,14 +2,30 @@ from attributes import *
 
 def all_moves(piece_name, new_x, new_y, init_x, init_y):
 
-    if piece_name.startswith("Black Chariot") or piece_name.startswith("Red Chariot"):
+    if piece_name.startswith("Black Chariot"):
         # to implement
         num_gap_x = 0
         num_gap_y = 0
         if (new_x != init_x and new_y == init_y):
             num_gap_x = abs(new_x - init_x) / gap
+            for i in range(round(num_gap_x)):
+                if new_x - init_x > 0:
+                    if is_piece_on_grid(piece_name, init_x + i * gap, init_y) is True:
+                        return False
+                elif new_x - init_x < 0: 
+                    if is_piece_on_grid(piece_name, init_x - i * gap, init_y) is True:
+                        return False
+
         elif (new_x == init_x and new_y != init_y):
             num_gap_y = abs(new_y - init_y) / gap
+            for i in range(round(num_gap_y)):
+                if new_y - init_y > 0:
+                    if is_piece_on_grid(piece_name, init_x, init_y  + i * gap) is True:
+                        return False
+                elif new_y - init_y < 0: 
+                    if is_piece_on_grid(piece_name, init_x, init_y  - i * gap) is True:
+                        return False
+                    
         potential_moves = [
                 (init_x, init_y + gap * num_gap_y),  # En avant
                 (init_x, init_y - gap * num_gap_y),  # En arrière
@@ -27,7 +43,48 @@ def all_moves(piece_name, new_x, new_y, init_x, init_y):
             if new_x == nx and new_y == ny:
                 # to implement
                 return True
+            
+    elif piece_name.startswith("Red Chariot"):
+        # to implement
+        num_gap_x = 0
+        num_gap_y = 0
+        if (new_x != init_x and new_y == init_y):
+            num_gap_x = abs(new_x - init_x) / gap
+            for i in range(round(num_gap_x)):
+                if new_x - init_x > 0:
+                    if is_piece_on_grid(piece_name, init_x + i * gap, init_y) is True:
+                        return False
+                elif new_x - init_x < 0: 
+                    if is_piece_on_grid(piece_name, init_x - i * gap, init_y) is True:
+                        return False
+        elif (new_x == init_x and new_y != init_y):
+            num_gap_y = abs(new_y - init_y) / gap
+            for i in range(round(num_gap_y)):
+                if new_y - init_y > 0:
+                    if is_piece_on_grid(piece_name, init_x, init_y  + i * gap) is True:
+                        return False
+                elif new_y - init_y < 0: 
+                    if is_piece_on_grid(piece_name, init_x, init_y  - i * gap) is True:
+                        return False
+                    
+        potential_moves = [
+                (init_x, init_y + gap * num_gap_y),  # En avant
+                (init_x, init_y - gap * num_gap_y),  # En arrière
+                (init_x - num_gap_x * gap, init_y),  # À gauche
+                (init_x + num_gap_x * gap, init_y),  # À droite
+            ]
         
+        valid_moves = []
+
+        for nx, ny in potential_moves:
+            if is_piece_on_grid(piece_name, new_x, new_y) is False:
+                        valid_moves.append((nx, ny))
+
+        for nx, ny in valid_moves:
+            if new_x == nx and new_y == ny:
+                # to implement
+                return True
+            
     elif piece_name.startswith("Black Horse") or piece_name.startswith("Red Horse"):
         potential_moves = [
             (init_x + 2 * gap, init_y + gap),  # Bas-droite
