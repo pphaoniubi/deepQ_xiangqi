@@ -46,23 +46,8 @@ def is_piece_on_grid(piece_name, new_x, new_y):
                 and piece_name != name:
                     return True
             
-    elif piece_name == "black_piece":
-        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
-            if rect.x == new_x and rect.y == new_y \
-            and "Red" in name:
-                return True
-            else:
-                return False
-            
-    elif piece_name == "red_piece":
-        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
-            if rect.x == new_x and rect.y == new_y \
-            and "Black" in name:
-                return True   
-            else:
-                return False
-
     return False
+            
 
 def find_closest_number(arr, target):
     # Initialize the closest value with a very high difference
@@ -86,22 +71,22 @@ def recalculate_grid(window_width, window_height, gap):
     margin_y = (window_height - height) // 2
     return width, height, margin_x, margin_y
 
-def place_or_eliminate(piece_name, x, y):    
-    if piece_name.find("Black") != -1:
-        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
-            if rect.x == x and rect.y == y \
-            and piece_name != name:
-                if name.find("Red") != -1:
-                    del pieces[name]
-                    pieces[piece_name] = (image, rect)
-        pieces[piece_name] = (image, rect)
+def eliminate_piece(piece_name, x, y):
+    # Parcourir toutes les pièces pour trouver celle à éliminer
+    for name, (image, rect) in list(pieces.items()):
+        if name == piece_name:
+             continue
+        elif rect.x == x and rect.y == y:
+            del pieces[name]  # Supprimer la pièce trouvée
+            print(f"Pièce '{name}' éliminée à la position ({x}, {y}).")
+            return  # Sortir de la fonction après avoir supprimé la pièce
+    print(f"Aucune pièce trouvée à la position ({x}, {y}).")
 
-            
-    elif piece_name.find("Red") != -1:
-        for name, (image, rect) in pieces.items():  # Utiliser items() pour avoir la clé et la valeur
-            if rect.x == x and rect.y == y \
-                and piece_name != name:
-                if name.find("Black") != -1:
-                    del pieces[name]
-                    pieces[piece_name] = (image, rect)
-        pieces[piece_name] = (image, rect)
+def get_color(x, y):
+    # Parcourir toutes les pièces pour trouver celle à éliminer
+    for name, (image, rect) in list(pieces.items()):
+        if rect.x == x and rect.y == y:
+            if name.find("Black") != -1:
+                return "Black"
+            elif name.find("Red") != -1:
+                return "Red"

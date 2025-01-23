@@ -284,11 +284,13 @@ while running:
                     0 <= new_y <= window_height - rect.height):
                     rect.x = find_closest_number(grid_x, new_x)
                     rect.y = find_closest_number(grid_y, new_y)
-                    if (all_moves(piece_name, new_x, new_y, initial_position[0], initial_position[1])
-                    and is_piece_on_grid(piece_name, rect.x, rect.y) is False):
-                        # placer-les sur la grille exactement
-                        pieces[piece_name] = (image, rect)  # Update the piece's position
-                        print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
+                    if (is_move_valid(piece_name, new_x, new_y, initial_position[0], initial_position[1])):
+                        if is_piece_on_grid(piece_name, rect.x, rect.y) is False:
+                            # placer-les sur la grille exactement
+                            pieces[piece_name] = (image, rect)  # Update the piece's position
+                            print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
+                        elif is_piece_on_grid(piece_name, rect.x, rect.y) is True:
+                            eliminate_piece(piece_name, rect.x, rect.y)
                     else:
                         # Invalid move: return to initial position
                         rect.x, rect.y = initial_position
