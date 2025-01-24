@@ -447,3 +447,12 @@ def change_sides(side):
         side = side.replace("Black", "Red")
     
     return side
+
+
+def is_winning():
+    if "Black General" not in pieces:
+        return "Red wins"
+    elif "Red General" not in pieces:
+        return "Black wins"
+    else:
+        return "Game continues"

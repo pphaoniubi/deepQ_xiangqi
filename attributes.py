@@ -34,6 +34,22 @@ grid_y = [55, 121, 187, 253, 319, 385, 451, 517, 583, 649]
 
 side = "Red"
 
+running = True
+dragging_piece = None
+dragging_offset_x = 0
+dragging_offset_y = 0
+selected_piece = None
+initial_position = None
+
+
+selected_piece = None
+
+# Initializations
+selected_piece = None
+dragging_piece = None
+dragging_offset_x, dragging_offset_y = 0, 0
+initial_position = None
+
 
 def is_piece_on_grid(piece_name, new_x, new_y):
     if piece_name.find("Black") != -1:

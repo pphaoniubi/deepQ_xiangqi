@@ -61,21 +61,6 @@ init_board()
 print("Board params (width, heigth, margin_x, margin_y): ", width, height, margin_x, margin_y)
 gridpoint_coordinates(window_width, window_height, gap)
 # Boucle principale du jeu
-running = True
-dragging_piece = None
-dragging_offset_x = 0
-dragging_offset_y = 0
-selected_piece = None
-initial_position = None
-
-
-selected_piece = None
-
-# Initializations
-selected_piece = None
-dragging_piece = None
-dragging_offset_x, dragging_offset_y = 0, 0
-initial_position = None
 
 while running:
     # Event handling
@@ -160,8 +145,9 @@ while running:
     window.fill(WHITE)
     draw_grid()
     draw_pieces()
-    # Mise à jour de l'écran
     pygame.display.flip()
+    if is_winning() == "Red wins" or is_winning() == "Black wins":
+        running = False
 
 # Quitter Pygame proprement
 pygame.quit()
