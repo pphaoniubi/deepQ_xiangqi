@@ -146,8 +146,18 @@ while running:
     draw_grid()
     draw_pieces()
     pygame.display.flip()
-    if is_winning() == "Red wins" or is_winning() == "Black wins":
-        running = False
+    if is_winning() == "Red wins":
+        red_win_count += 1
+        pieces.clear()
+        init_board()
+        side = "Red"
+        print("Red wins")
+    elif is_winning() == "Black wins":
+        black_win_count += 1
+        pieces.clear()
+        init_board()
+        side = "Red"
+        print("Black wins")
 
 # Quitter Pygame proprement
 pygame.quit()

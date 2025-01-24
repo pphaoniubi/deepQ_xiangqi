@@ -33,6 +33,10 @@ grid_x = [55, 121, 187, 253, 319, 385, 451, 517, 583]
 grid_y = [55, 121, 187, 253, 319, 385, 451, 517, 583, 649]
 
 side = "Red"
+red_win_count = 0
+black_win_count = 0
+red_time = 0
+black_time = 0
 
 running = True
 dragging_piece = None
