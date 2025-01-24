@@ -8,7 +8,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
         num_gap_y = 0
         if (new_x != init_x and new_y == init_y):
             num_gap_x = abs(new_x - init_x) / gap
-            for i in range(round(num_gap_x)):
+            for i in range(1, round(num_gap_x) + 1):
                 if new_x - init_x > 0:
                     if is_piece_on_grid(piece_name, init_x + i * gap, init_y) is True:
                         return False
@@ -205,7 +205,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
                 if is_piece_on_grid(piece_name, temp_pos_x, init_y):
                     piece_hit_count += 1
 
-                    if piece_hit_count == 2 and get_color(new_x, new_y) == "Red" \
+                    if piece_hit_count == 2 and get_color(piece_name, new_x, new_y) == "Red" \
                         and temp_pos_x == new_x and init_y == new_y:
                         return True
                     
@@ -230,7 +230,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
 
                 if is_piece_on_grid(piece_name, init_x, temp_pos_y):
                     piece_hit_count += 1
-                    if piece_hit_count == 2 and get_color(new_x, new_y) == "Red" \
+                    if piece_hit_count == 2 and get_color(piece_name, new_x, new_y) == "Red" \
                         and init_x == new_x and temp_pos_y == new_y:
                         return True
 
@@ -278,7 +278,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
                 if is_piece_on_grid(piece_name, temp_pos_x, init_y):
                     piece_hit_count += 1
 
-                    if piece_hit_count == 2 and get_color(new_x, new_y) == "Black" \
+                    if piece_hit_count == 2 and get_color(piece_name, new_x, new_y) == "Black" \
                         and temp_pos_x == new_x and init_y == new_y:
                         return True
                     
@@ -288,6 +288,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
                 return False
             elif piece_hit_count == 2 and is_piece_on_grid(piece_name, temp_pos_x, init_y) is False:
                 return False
+            return False
 
         elif (new_x == init_x and new_y != init_y):  # Déplacement vertical
             num_gap_y = abs(new_y - init_y) / gap
@@ -301,7 +302,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
 
                 if is_piece_on_grid(piece_name, init_x, temp_pos_y):
                     piece_hit_count += 1
-                    if piece_hit_count == 2 and get_color(new_x, new_y) == "Black" \
+                    if piece_hit_count == 2 and get_color(piece_name, new_x, new_y) == "Black" \
                         and init_x == new_x and temp_pos_y == new_y:
                         return True
 
@@ -311,25 +312,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
                 return False
             elif piece_hit_count == 2 and is_piece_on_grid(piece_name, init_x, temp_pos_y) is False:
                 return False
-
-        potential_moves = [
-                (init_x, init_y + gap * num_gap_y),  # En avant
-                (init_x, init_y - gap * num_gap_y),  # En arrière
-                (init_x - num_gap_x * gap, init_y),  # À gauche
-                (init_x + num_gap_x * gap, init_y),  # À droite
-            ]
-        
-        
-        valid_moves = []
-
-        for nx, ny in potential_moves:
-            if is_piece_on_grid(piece_name, new_x, new_y) is False:
-                        valid_moves.append((nx, ny))
-
-        for nx, ny in valid_moves:
-            if new_x == nx and new_y == ny:
-                # to implement
-                return True
+            return False
 
     elif piece_name.startswith("Black Soldier"): 
         valid_moves = []

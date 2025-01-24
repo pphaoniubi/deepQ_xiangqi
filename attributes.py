@@ -82,9 +82,11 @@ def eliminate_piece(piece_name, x, y):
             return  # Sortir de la fonction après avoir supprimé la pièce
     print(f"Aucune pièce trouvée à la position ({x}, {y}).")
 
-def get_color(x, y):
+def get_color(piece_name, x, y):
     # Parcourir toutes les pièces pour trouver celle à éliminer
     for name, (image, rect) in list(pieces.items()):
+        if name == piece_name:
+            continue
         if rect.x == x and rect.y == y:
             if name.find("Black") != -1:
                 return "Black"
