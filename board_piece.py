@@ -10,10 +10,12 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
             num_gap_x = abs(new_x - init_x) / gap
             for i in range(1, round(num_gap_x) + 1):
                 if new_x - init_x > 0:
-                    if is_piece_on_grid(piece_name, init_x + i * gap, init_y) is True:
+                    if is_piece_on_grid(piece_name, init_x + i * gap, init_y) is True \
+                        and new_x != init_x + i * gap:
                         return False
                 elif new_x - init_x < 0: 
-                    if is_piece_on_grid(piece_name, init_x - i * gap, init_y) is True:
+                    if is_piece_on_grid(piece_name, init_x - i * gap, init_y) is True \
+                        and new_x != init_x - i * gap:
                         return False
 
         elif (new_x == init_x and new_y != init_y):
@@ -138,6 +140,7 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
             if new_x == nx and new_y == ny:
                 # to implement
                 return True
+            
     elif piece_name.startswith("Black Elephant"):
         # to implement
         potential_moves = [
@@ -435,3 +438,12 @@ def is_move_valid(piece_name, new_x, new_y, init_x, init_y):
             if new_x == nx and new_y == ny:
                 return True
     return False
+
+
+def change_sides(side):
+    if side == "Red":
+        side = side.replace("Red", "Black")
+    elif side == "Black":
+        side = side.replace("Black", "Red")
+    
+    return side

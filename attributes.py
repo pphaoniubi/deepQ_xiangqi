@@ -32,6 +32,8 @@ pieces = {}
 grid_x = [55, 121, 187, 253, 319, 385, 451, 517, 583]
 grid_y = [55, 121, 187, 253, 319, 385, 451, 517, 583, 649]
 
+side = "Red"
+
 
 def is_piece_on_grid(piece_name, new_x, new_y):
     if piece_name.find("Black") != -1:
@@ -72,15 +74,26 @@ def recalculate_grid(window_width, window_height, gap):
     return width, height, margin_x, margin_y
 
 def eliminate_piece(piece_name, x, y):
-    # Parcourir toutes les pièces pour trouver celle à éliminer
-    for name, (image, rect) in list(pieces.items()):
-        if name == piece_name:
-             continue
-        elif rect.x == x and rect.y == y:
-            del pieces[name]  # Supprimer la pièce trouvée
-            print(f"Pièce '{name}' éliminée à la position ({x}, {y}).")
-            return  # Sortir de la fonction après avoir supprimé la pièce
-    print(f"Aucune pièce trouvée à la position ({x}, {y}).")
+    if piece_name.find("Black") != -1:
+        for name, (image, rect) in list(pieces.items()):
+            if name == piece_name:
+                continue
+            elif rect.x == x and rect.y == y and name.find("Red") != -1:
+                del pieces[name]
+                print(f"Pièce '{name}' éliminée à la position ({x}, {y}).")
+                return True
+        print(f"Aucune pièce trouvée à la position ({x}, {y}).")
+        return False
+
+    elif piece_name.find("Red") != -1:
+        for name, (image, rect) in list(pieces.items()):
+            if name == piece_name:
+                continue
+            elif rect.x == x and rect.y == y and name.find("Black") != -1:
+                del pieces[name]
+                print(f"Pièce '{name}' éliminée à la position ({x}, {y}).")
+                return
+        print(f"Aucune pièce trouvée à la position ({x}, {y}).")
 
 def get_color(piece_name, x, y):
     # Parcourir toutes les pièces pour trouver celle à éliminer

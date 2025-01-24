@@ -65,42 +65,48 @@ running = True
 dragging_piece = None
 dragging_offset_x = 0
 dragging_offset_y = 0
-selected_piece = None  # Keep track of the selected piece
-initial_position = None  # To store the initial position of the piece
+selected_piece = None
+initial_position = None
 
-# Initializations (before the main loop)
-selected_piece = None  # To store the currently selected piece
+
+selected_piece = None
 
 # Initializations
-selected_piece = None  # To store the currently selected piece
-dragging_piece = None  # To keep track of the piece being dragged
-dragging_offset_x, dragging_offset_y = 0, 0  # Offset for dragging
-initial_position = None  # To store the initial position of the piece
+selected_piece = None
+dragging_piece = None
+dragging_offset_x, dragging_offset_y = 0, 0
+initial_position = None
 
 while running:
     # Event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False  # Quit the loop when closing the window
+            running = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # Detect if a piece is clicked
             mouse_pos = event.pos
             for piece_name, (image, rect) in pieces.items():
                 if rect.collidepoint(mouse_pos):
+
+                    if piece_name.find("Red") != -1 and side == "Black":
+                        print("Vous ne pouvez pas sélectionner les pièces de l'adversaire.")
+                        break  # Ignore cette pièce et passe à la suivante
+                    elif piece_name.find("Black") != -1 and side == "Red":
+                        print("Vous ne pouvez pas sélectionner les pièces de l'adversaire.")
+                        break  # Ignore cette pièce et passe à la suivante
+
                     center_x, center_y = rect.centerx, rect.centery
                     distance = ((mouse_pos[0] - center_x) ** 2 + (mouse_pos[1] - center_y) ** 2) ** 0.5
-                    if distance <= 25:  # Click is within the piece radius
-                        dragging_piece = piece_name  # Store the name of the piece being dragged
-                        selected_piece = (piece_name, image, rect)  # Store the selected piece
-                        initial_position = (rect.x, rect.y)  # Store the initial position
+                    if distance <= 25:
+                        dragging_piece = piece_name
+                        selected_piece = (piece_name, image, rect)
+                        initial_position = (rect.x, rect.y)
                         dragging_offset_x = mouse_pos[0] - rect.x
                         dragging_offset_y = mouse_pos[1] - rect.y
                         print(f"Sélection de {piece_name} à la position ({rect.x}, {rect.y})")
-                        break  # Exit once a piece is selected
-
+                        break 
         elif event.type == pygame.MOUSEMOTION:
-            # Drag the selected piece
+
             if dragging_piece:
                 mouse_pos = event.pos
                 piece_name, image, rect = selected_piece  # Unpack the selected piece
@@ -134,7 +140,8 @@ while running:
                             pieces[piece_name] = (image, rect)  # Update the piece's position
                             print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
                         elif is_piece_on_grid(piece_name, rect.x, rect.y) is True:
-                            eliminate_piece(piece_name, rect.x, rect.y)
+                            if eliminate_piece(piece_name, rect.x, rect.y) is False:
+                                rect.x, rect.y = initial_position
                     else:
                         # Invalid move: return to initial position
                         rect.x, rect.y = initial_position
@@ -147,7 +154,8 @@ while running:
                 # Reset dragging state
                 dragging_piece = None
                 selected_piece = None
-                initial_position = None  # Reset initial position
+                initial_position = None
+                side = change_sides(side)
     
     window.fill(WHITE)
     draw_grid()
