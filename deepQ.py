@@ -1,24 +1,25 @@
 from training_attributes import *
 import random
+import numpy as np
+from attributes import *
+from board_piece import *
 
-def encode_board(board):
-    """
-    Encodes the Pygame board into a flat vector for the neural network.
-    Each element represents a piece or an empty square.
-    :param board: 2D array (10x9) representing the board
-    :return: 1D numpy array
-    """
-    flat_board = []
+def encode_pieces_to_1d_board(pieces):
+    board = [[0]*9 for i in range(10)]
+    for name, (image, rect) in pieces.items():
+        i = int((rect.x - 55) / gap)
+        j = int((rect.y - 55) / gap)
+        if name.find("Black") != -1:
+            board[j][i] = -1
+        elif name.find("Red") != -1:
+            board[j][i] = 1
+    board_flat = []
     for row in board:
-        for square in row:
-            if square is None:
-                flat_board.append(0)  # Empty square
-            elif square.color == "red":
-                flat_board.append(1)  # Red piece
-            else:
-                flat_board.append(-1)  # Black piece
-    return np.array(flat_board)
+        for cross in row:
+            board_flat.append(cross)
+    print(board_flat)
 
+    return np.array(board_flat)
 
 def step(action_index, action_space_size, game):
     """
@@ -36,22 +37,22 @@ def step(action_index, action_space_size, game):
     # Apply the move in the Pygame game
     legal_moves = game.get_legal_moves()
     if move not in legal_moves:
-        return encode_board(game.board), -10, True  # Invalid move penalty
+        return encode_pieces_to_1d_board(pieces), -10, True  # Invalid move penalty
 
     game.make_move(move)
 
     # Determine reward
     reward = 0
-    if game.is_win("red"):
+    if is_winning() == "Red wins":
         reward = 100
         done = True
-    elif game.is_win("black"):
+    elif is_winning() == "Black wins":
         reward = -100
         done = True
     else:
         done = game.is_draw()
 
-    return encode_board(game.board), reward, done
+    return encode_pieces_to_1d_board(game.board), reward, done
 
 def map_legal_moves_to_actions(legal_moves, action_space_size):
     """

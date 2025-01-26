@@ -8,9 +8,8 @@ pygame.init()
 
 window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
 
-# Définir un titre pour la fenêtre
-pygame.display.set_caption('xiangqi')
 
+pygame.display.set_caption('xiangqi')
 
 def draw_grid():
     # Dessiner 10 lignes horizontales
@@ -24,7 +23,7 @@ def draw_grid():
         pygame.draw.line(window, BLACK, (x, margin_y), (x, margin_y + height), 2)  # Ligne verticale
         
     # frontiere
-    border_thickness = 2  # Épaisseur de la bordure
+    border_thickness = 2
     pygame.draw.rect(window, BLACK, (margin_x, margin_y, width, height), border_thickness)
 
     for point in advisor_point_black:
@@ -32,36 +31,29 @@ def draw_grid():
 
     for point in advisor_point_red:
         pygame.draw.line(window, BLACK, advisor_center_red, point, 2)
-# Function to generate a 2D array of grid intersections
-def gridpoint_coordinates(window_width, window_height, gap):
-    # Recalculate grid dimensions and margins
-    _, _, margin_x, margin_y = recalculate_grid(window_width, window_height, gap)  # Ignore width and height
-    
-    # Create the 2D array to store coordinates
-    coordinates = []
-    
-    for row in range(10):  # 10 horizontal lines
-        row_coords = []
-        for col in range(9):  # 9 vertical lines
-            # Calculate the x and y coordinates of each intersection
-            x = margin_x + col * gap
-            y = margin_y + row * gap
-            row_coords.append((x, y))
-        coordinates.append(row_coords)
-
-    print(coordinates)
-    return coordinates
 
 def draw_pieces():
     for image, rect in pieces.values():
         window.blit(image, rect)
 
 init_board()
-# Board dimensions
-print("Board params (width, heigth, margin_x, margin_y): ", width, height, margin_x, margin_y)
-gridpoint_coordinates(window_width, window_height, gap)
-# Boucle principale du jeu
+def pieces_to_board(pieces):
+    board = [[0]*9 for i in range(10)]
+    for name, (image, rect) in pieces.items():
+        i = int((rect.x - 55) / gap)
+        j = int((rect.y - 55) / gap)
+        if name.find("Black") != -1:
+            board[j][i] = 1
+        elif name.find("Red") != -1:
+            board[j][i] = -1
+    board_flat = []
+    for row in board:
+        for cross in row:
+            board_flat.append(cross)
+    print(board_flat)
+    return board
 
+pieces_to_board(pieces)
 while running:
     # Event handling
     for event in pygame.event.get():
