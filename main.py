@@ -123,10 +123,12 @@ while running:
                         if is_piece_on_grid(piece_name, rect.x, rect.y) is False:
                             # placer-les sur la grille exactement
                             pieces[piece_name] = (image, rect)  # Update the piece's position
+                            side = change_sides(side)
                             print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
                         elif is_piece_on_grid(piece_name, rect.x, rect.y) is True:
                             if eliminate_piece(piece_name, rect.x, rect.y) is False:
                                 rect.x, rect.y = initial_position
+                                side = change_sides(side)
                     else:
                         # Invalid move: return to initial position
                         rect.x, rect.y = initial_position
@@ -140,7 +142,6 @@ while running:
                 dragging_piece = None
                 selected_piece = None
                 initial_position = None
-                side = change_sides(side)
     
     window.fill(WHITE)
     draw_grid()
