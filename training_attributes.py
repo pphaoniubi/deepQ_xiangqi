@@ -21,7 +21,7 @@ class DQN(nn.Module):
 
 # Hyperparameters
 STATE_SIZE = 90  # 10x9 board
-ACTION_SIZE = 2000  # Simplified action space
+ACTION_SIZE = 90  # Simplified action space
 BATCH_SIZE = 64
 GAMMA = 0.99
 EPSILON = 1.0

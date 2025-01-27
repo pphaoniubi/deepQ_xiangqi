@@ -457,3 +457,10 @@ def is_winning():
     else:
         return "Game continues"
     
+
+def make_move(piece_name, new_x, new_y):
+    for name, (image, rect) in pieces.items():
+       if name == piece_name:
+            rect.x = new_x
+            rect.y = new_y
+            break

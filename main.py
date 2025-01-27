@@ -37,23 +37,7 @@ def draw_pieces():
         window.blit(image, rect)
 
 init_board()
-def pieces_to_board(pieces):
-    board = [[0]*9 for i in range(10)]
-    for name, (image, rect) in pieces.items():
-        i = int((rect.x - 55) / gap)
-        j = int((rect.y - 55) / gap)
-        if name.find("Black") != -1:
-            board[j][i] = 1
-        elif name.find("Red") != -1:
-            board[j][i] = -1
-    board_flat = []
-    for row in board:
-        for cross in row:
-            board_flat.append(cross)
-    print(board_flat)
-    return board
 
-pieces_to_board(pieces)
 while running:
     # Event handling
     for event in pygame.event.get():
@@ -116,11 +100,36 @@ while running:
                             # placer-les sur la grille exactement
                             pieces[piece_name] = (image, rect)  # Update the piece's position
                             side = change_sides(side)
-                            print(f"Placed {piece_name} at position ({rect.x}, {rect.y})")
+                            if is_winning() == "Red wins":
+                                red_win_count += 1
+                                pieces.clear()
+                                init_board()
+                                side = "Red"
+                                print("Red wins")
+                            elif is_winning() == "Black wins":
+                                black_win_count += 1
+                                pieces.clear()
+                                init_board()
+                                side = "Red"
+                                print("Black wins")
+                                
                         elif is_piece_on_grid(piece_name, rect.x, rect.y) is True:
                             if eliminate_piece(piece_name, rect.x, rect.y) is False:
                                 rect.x, rect.y = initial_position
                                 side = change_sides(side)
+                                # check if there's a winner
+                                if is_winning() == "Red wins":
+                                    red_win_count += 1
+                                    pieces.clear()
+                                    init_board()
+                                    side = "Red"
+                                    print("Red wins")
+                                elif is_winning() == "Black wins":
+                                    black_win_count += 1
+                                    pieces.clear()
+                                    init_board()
+                                    side = "Red"
+                                    print("Black wins")
                     else:
                         # Invalid move: return to initial position
                         rect.x, rect.y = initial_position
@@ -139,18 +148,6 @@ while running:
     draw_grid()
     draw_pieces()
     pygame.display.flip()
-    if is_winning() == "Red wins":
-        red_win_count += 1
-        pieces.clear()
-        init_board()
-        side = "Red"
-        print("Red wins")
-    elif is_winning() == "Black wins":
-        black_win_count += 1
-        pieces.clear()
-        init_board()
-        side = "Red"
-        print("Black wins")
 
 # Quitter Pygame proprement
 pygame.quit()
