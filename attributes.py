@@ -1,5 +1,6 @@
 import pygame
-
+from board_piece import change_sides
+import game_state
 
 gap = 66
 
@@ -96,6 +97,7 @@ def eliminate_piece(piece_name, x, y):
                 continue
             elif rect.x == x and rect.y == y and name.find("Red") != -1:
                 del pieces[name]
+                side = change_sides(side)
                 print(f"Pièce '{name}' éliminée à la position ({x}, {y}).")
                 return True
         print(f"Aucune pièce trouvée à la position ({x}, {y}).")

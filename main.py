@@ -2,12 +2,12 @@ import pygame
 import sys
 from attributes import *
 from board_piece import *
+from game_state import game
 
 # Initialisation de Pygame
 pygame.init()
 
 window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-
 
 pygame.display.set_caption('xiangqi')
 
@@ -100,36 +100,27 @@ while running:
                             # placer-les sur la grille exactement
                             pieces[piece_name] = (image, rect)  # Update the piece's position
                             side = change_sides(side)
-                            if is_winning() == "Red wins":
-                                red_win_count += 1
-                                pieces.clear()
-                                init_board()
-                                side = "Red"
-                                print("Red wins")
-                            elif is_winning() == "Black wins":
-                                black_win_count += 1
-                                pieces.clear()
-                                init_board()
-                                side = "Red"
-                                print("Black wins")
+                            game.save_state(piece_name, rect.x, rect.y, new_x, new_y)
                                 
                         elif is_piece_on_grid(piece_name, rect.x, rect.y) is True:
                             if eliminate_piece(piece_name, rect.x, rect.y) is False:
                                 rect.x, rect.y = initial_position
-                                side = change_sides(side)
-                                # check if there's a winner
-                                if is_winning() == "Red wins":
-                                    red_win_count += 1
-                                    pieces.clear()
-                                    init_board()
-                                    side = "Red"
-                                    print("Red wins")
-                                elif is_winning() == "Black wins":
-                                    black_win_count += 1
-                                    pieces.clear()
-                                    init_board()
-                                    side = "Red"
-                                    print("Black wins")
+                            else: 
+                                game.save_state(piece_name, rect.x, rect.y, new_x, new_y)
+                    
+                    # check winning
+                    if is_winning() == "Red wins":
+                        red_win_count += 1
+                        pieces.clear()
+                        init_board()
+                        side = "Red"
+                        print("Red wins")
+                    elif is_winning() == "Black wins":
+                        black_win_count += 1
+                        pieces.clear()
+                        init_board()
+                        side = "Red"
+                        print("Black wins")
                     else:
                         # Invalid move: return to initial position
                         rect.x, rect.y = initial_position

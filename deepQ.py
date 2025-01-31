@@ -3,6 +3,7 @@ import random
 import numpy as np
 from attributes import *
 from board_piece import *
+from game_state import game
 
 def encode_pieces_to_1d_board(pieces):
     board = [[0]*9 for i in range(10)]
@@ -77,7 +78,7 @@ for episode in range(EPISODES):
             action = legal_action_indices[np.argmax(q_values[legal_action_indices])]
 
         # Take the action and observe the new state
-        next_state, reward, done = step(piece_name, new_x, new_y, init_x, init_y)
+        next_state, reward, done = step(game.piece_name, game.new_x, game.new_y, game.init_x, game.init_y)
         replay_buffer.append((state, action, reward, next_state, done))
 
         # Train the network
