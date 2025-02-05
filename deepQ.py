@@ -5,15 +5,30 @@ from attributes import *
 from board_piece import *
 from game_state import game
 
-def encode_pieces_to_1d_board(pieces):
+piece_encoding = {
+    "Red Chariot": 1, "Black Chariot": -1,
+    "Red Horse": 2, "Black Horse": -2,
+    "Red Elephant": 3, "Black Elephant": -3,
+    "Red Advisor": 4, "Black Advisor": -4,
+    "Red General": 5, "Black General": -5,
+    "Red Cannon": 6, "Black Cannon": -6,
+    "Red Soldier": 7, "Black Soldier": -7
+}
+
+def encode_pieces_to_2d_board(pieces):
     board = [[0]*9 for i in range(10)]
     for name, (image, rect) in pieces.items():
         i = int((rect.x - 55) / gap)
         j = int((rect.y - 55) / gap)
-        if name.find("Black") != -1:
-            board[j][i] = -1
-        elif name.find("Red") != -1:
-            board[j][i] = 1
+        
+        if name in piece_encoding:
+            board[j][i] = piece_encoding[name]
+
+    return board
+
+def encode_pieces_to_1d_board(pieces):
+    board = encode_pieces_to_2d_board(pieces)
+
     board_flat = []
     for row in board:
         for cross in row:
@@ -56,7 +71,6 @@ def step(piece_name, new_x, new_y, init_x, init_y, move_count):
     return encode_pieces_to_1d_board(pieces), reward, done
 
 
-
 EPISODES = 1000
 # Training loop with Pygame
 move_count = 0
@@ -66,8 +80,8 @@ for episode in range(EPISODES):
 
     for t in range(200):  # Max steps per episode
         # Get legal moves and map to action space
-        legal_moves = game.get_legal_moves()
-        legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE)
+        legal_moves = game.get_legal_moves(game.piece_name)
+        legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE)        # 1d space
 
         # Choose an action (random or based on policy)
         if random.random() < EPSILON:
