@@ -205,7 +205,7 @@ def get_legal_moves(piece, init_x, init_y, board):
                 if board[y][x] == 0:  # Case vide
                     if passed_piece:  # Si une pièce alliée a été traversée, la capture est possible
                         legal_moves.append((x, y))
-                elif board[y][x].startswith("Black") or board[y][x].startswith("Red"):  # Pièce alliée
+                elif board[y][x] > 0:  # Pièce alliée
                     if not passed_piece:  # Une pièce alliée bloque la route, on ne peut pas passer
                         break
                     else:  # Si une pièce a été passée, on peut sauter
