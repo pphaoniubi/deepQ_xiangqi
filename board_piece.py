@@ -135,7 +135,7 @@ def get_legal_moves(piece, init_x, init_y, board):
         return legal_moves
 
             
-    elif abs(piece) == 4 or abs(piece) == 6:
+    elif abs(piece) == 4 or abs(piece) == 6   :
         legal_moves = []
 
         # Liste des 8 mouvements possibles
@@ -246,3 +246,4 @@ def get_legal_moves(piece, init_x, init_y, board):
             if new_x == nx and new_y == ny:
                 # to implement
                 return True
+
