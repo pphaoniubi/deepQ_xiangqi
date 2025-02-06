@@ -19,13 +19,35 @@ def is_winning():
         return "Game continues"
     
 
-def make_move(piece_name, new_x, new_y):
+def make_move(piece_name, new_x, new_y, board):
     for name, (image, rect) in pieces.items():
        if name == piece_name:
             rect.x = new_x
             rect.y = new_y
             break
-       
+
+    moving_piece = deepQ.piece_encoding.get(piece_name)
+
+    for i in range(len(board)):  # Loop through rows
+        for j in range(len(board[i])):  # Loop through columns
+            if board[i][j] == moving_piece:
+                board[i][j] = 0
+                break
+    
+    if "Cannon" not in piece_name:
+        eated_piece_id = board[new_x][new_y]
+        eated_piece = next(
+            (name for name, encoded_value in deepQ.piece_encoding.items() if encoded_value == eated_piece_id),
+            None
+        )
+        if eated_piece is not None:
+            for name, (image, rect) in pieces.items():
+                if name == eated_piece:
+                    rect.x = -1
+                    rect.y = -1
+                    break
+        
+    board[new_x][new_y] = moving_piece
 
 def get_legal_moves(piece, init_x, init_y, board):
 
