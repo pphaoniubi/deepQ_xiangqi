@@ -4,6 +4,7 @@ class game:
     init_y = 0
     new_x = 0
     new_y = 0
+    board = [[0] * 9 for _ in range(10)]
 
     def save_state(self, piece_name, init_x, init_y, new_x, new_y):
         self.piece_name = piece_name

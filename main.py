@@ -1,14 +1,17 @@
-def dessiner_plateau(board):
+from game_state import game
+import board_piece
+
+def draw_board(board):
     """
     Affiche un plateau de Xiangqi (Chinese Chess) dans le terminal.
     """
     # En-tête des colonnes
-    print("   1   2   3   4   5   6   7   8   9")
+    print("   0   1   2   3   4   5   6   7   8")
     
     # Dessiner chaque ligne du plateau
     for y in range(10):
         # Ajouter le numéro de la ligne
-        row = f"{y+1} "
+        row = f"{y} "
         for x in range(9):
             piece = board[y][x]
             # Si la case est vide, afficher "."
@@ -30,7 +33,7 @@ def dessiner_plateau(board):
 
 # Exemple de configuration du plateau (Xiangqi)
 # Utiliser 0 pour les cases vides et des symboles pour les pièces
-plateau_init = [
+game.board = [
     [-1, -2, -3, -4, -5, -6, -7, -8, -9],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, -10, 0, 0, 0, 0, 0, -11, 0],
@@ -43,5 +46,19 @@ plateau_init = [
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
 ]
 
-# Afficher le plateau
-dessiner_plateau(plateau_init)
+
+while True:
+    draw_board(game.board)
+
+    piece = int(input("Eneter a piece: "))
+
+    legal_moves = board_piece.get_legal_moves(piece, game.board)
+
+    print(f"Your legal moves are: {legal_moves}")
+
+    choice = int(input("Eneter a choice: "))
+
+    legal_move_chosen = legal_moves[choice]
+
+    game.board = board_piece.make_move1(piece, legal_move_chosen[0], legal_move_chosen[1], game.board)
+

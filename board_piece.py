@@ -1,5 +1,6 @@
 from attributes import *
-import deepQ
+
+
 
 def change_sides(side):
     if side == "Red":
@@ -18,7 +19,7 @@ def is_winning():
     else:
         return "Game continues"
     
-
+"""
 def make_move(piece, new_x, new_y, board):
     piece_name = next((name for name, v in pieces.items() if v == piece), None)
     for name, (image, rect) in pieces.items():
@@ -48,9 +49,34 @@ def make_move(piece, new_x, new_y, board):
 
     #else: for cannon 
         
-    board[new_x][new_y] = piece
+    board[new_x][new_y] = piece"""
 
-def get_legal_moves(piece, init_x, init_y, board):
+def find_piece(piece, board):
+    found = False
+    for j in range(len(board)):
+        for i in range(len(board[j])):
+            if board[j][i] == piece:
+                found = True
+                init_x = i
+                init_y = j
+                break
+        if found:
+            break
+    if found:
+        return init_x, init_y
+    else:
+        return None
+
+
+def make_move1(piece, new_x, new_y, board):
+    init_x, init_y = find_piece(piece, board)
+    board[init_y][init_x] = 0
+    board[new_y][new_x] = piece
+
+    return board
+
+def get_legal_moves(piece, board):
+    init_x, init_y = find_piece(piece, board)
 
     if abs(piece) == 1 or abs(piece) == 9:
             legal_moves = []
@@ -226,47 +252,42 @@ def get_legal_moves(piece, init_x, init_y, board):
                 
                 # Vérifier les cases
                 if board[y][x] == 0:  # Case vide
-                    if passed_piece:  # Si une pièce alliée a été traversée, la capture est possible
-                        legal_moves.append((x, y))
-                elif board[y][x] > 0:  # Pièce alliée
+                    legal_moves.append((x, y))
+                elif board[y][x] != 0:  # Pièce alliée
                     if not passed_piece:  # Une pièce alliée bloque la route, on ne peut pas passer
-                        break
+                        passed_piece = True
                     else:  # Si une pièce a été passée, on peut sauter
-                        continue
-                else:  # Pièce ennemie
-                    if passed_piece:  # La pièce ennemie peut être capturée
-                        legal_moves.append((x, y))
-                    break  # Une fois qu'une pièce ennemie est capturée, on arrête le mouvement
-
-                # Si on rencontre une pièce alliée, on la marque comme un "passage"
-                if board[y][x] != 0:
-                    passed_piece = True
+                        if (board[y][x] > 0 and piece < 0) or (board[y][x] < 0 and piece > 0):
+                            legal_moves.append((x, y))
+                        else: 
+                            break
             
         return legal_moves
     
 
     elif abs(piece) in (12, 13, 14, 15, 16): 
-        valid_moves = []
+        legal_moves = []
 
-        has_crossed_river = (init_y >= 5 * gap + 55)
+        # Vérifier si le soldat a traversé la rivière
+        if piece > 0:  # Soldat rouge (兵) avance vers le bas
+            has_crossed_river = init_y >= 5
+            moves = [(0, 1)]  # Avancer uniquement vers le bas
+            if has_crossed_river:
+                moves += [(-1, 0), (1, 0)]  # Peut aller à gauche et à droite après la rivière
+        
+        else:  # Soldat noir (卒) avance vers le haut
+            has_crossed_river = init_y <= 4
+            moves = [(0, -1)]  # Avancer uniquement vers le haut
+            if has_crossed_river:
+                moves += [(-1, 0), (1, 0)]  # Peut aller à gauche et à droite après la rivière
 
-        if has_crossed_river:
-            potential_moves = [
-                (init_x, init_y + gap),
-                (init_x - gap, init_y),
-                (init_x + gap, init_y),
-            ]
-        else:
+        # Vérifier les mouvements possibles
+        for dx, dy in moves:
+            new_x, new_y = init_x + dx, init_y + dy
 
-            potential_moves = [
-                (init_x, init_y + gap),
-            ]
-        for nx, ny in potential_moves:
-            if 55 <= nx <= 583 and 55 <= ny <= 649:
-                valid_moves.append((nx, ny))
+            # Vérifier si la position est valide
+            if 0 <= new_x < 9 and 0 <= new_y < 10 and board[new_y][new_x] <= 0 if piece > 0 else board[new_y][new_x] >= 0:
+                legal_moves.append((new_x, new_y))  # Ajout du mouvement
 
-        for nx, ny in valid_moves:
-            if new_x == nx and new_y == ny:
-                # to implement
-                return True
+        return legal_moves
 

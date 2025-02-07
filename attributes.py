@@ -1,5 +1,4 @@
 import pygame
-from board_piece import change_sides
 import game_state
 
 gap = 66
