@@ -3,6 +3,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
@@ -39,3 +40,37 @@ target_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.Adam(policy_net.parameters(), lr=LEARNING_RATE)
 loss_fn = nn.MSELoss()
+
+
+def train_dqn():
+    if len(replay_buffer) < BATCH_SIZE:
+        return  # Wait until buffer has enough samples
+
+    # Sample a mini-batch from replay buffer
+    batch = random.sample(replay_buffer, BATCH_SIZE)
+    
+    # Unpack batch: states, actions, rewards, next_states, dones
+    states, actions, rewards, next_states, dones = zip(*batch)
+
+    # Convert to tensors
+    states = torch.tensor(states, dtype=torch.float32).to(device)
+    actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(device)
+    rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(device)
+    next_states = torch.tensor(next_states, dtype=torch.float32).to(device)
+    dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1).to(device)
+
+    # Compute current Q-values from policy_net
+    q_values = policy_net(states).gather(1, actions)  # Select Q-values of chosen actions
+
+    # Compute target Q-values using Bellman equation
+    with torch.no_grad():
+        next_q_values = target_net(next_states).max(1, keepdim=True)[0]  # Max Q-value of next state
+        target_q_values = rewards + (GAMMA * next_q_values * (1 - dones))  # Q-target
+
+    # Compute loss (Mean Squared Error or Huber Loss)
+    loss = F.smooth_l1_loss(q_values, target_q_values)
+
+    # Optimize the policy network
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
