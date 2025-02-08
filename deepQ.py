@@ -2,7 +2,7 @@ from training_attributes import *
 import random
 import numpy as np
 from attributes import *
-from board_piece import *
+import board_piece
 from game_state import game
 
 piece_encoding = {
@@ -15,20 +15,9 @@ piece_encoding = {
     "Red Soldier": 7, "Black Soldier": -7
 }
 
-def encode_pieces_to_2d_board(pieces):
-    board = [[0]*9 for i in range(10)]
-    for name, (image, rect) in pieces.items():
-        i = int((rect.x - 55) / gap)
-        j = int((rect.y - 55) / gap)
-        
-        if name in piece_encoding:
-            board[j][i] = piece_encoding[name]
 
-    return board
 
-def encode_pieces_to_1d_board(pieces):
-    board = encode_pieces_to_2d_board(pieces)
-
+def encode_board_to_1d_board(board):
     board_flat = []
     for row in board:
         for cross in row:
@@ -37,7 +26,14 @@ def encode_pieces_to_1d_board(pieces):
 
     return np.array(board_flat)
 
-def step(piece_name, new_x, new_y, init_x, init_y, move_count):
+def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
+    index = []
+    for legal_move in legal_moves:
+        index.append(legal_move[1] * 9 + legal_move[0])
+
+    return index
+
+def step(piece, new_x, new_y, init_x, init_y, move_count):
     """
     Execute the action in the Pygame game and return the new state, reward, and done status.
     :param action_index: Index of the action to take
@@ -50,32 +46,34 @@ def step(piece_name, new_x, new_y, init_x, init_y, move_count):
     end = (new_x, new_y)
     move = (start, end)
 
-    is_legal = is_move_valid(piece_name, new_x, new_y, init_x, init_y)
-    if not is_legal:
-        return encode_pieces_to_1d_board(pieces), -10, True  # Invalid move penalty
+    legal_moves = board_piece.get_legal_moves(piece, game.board)
+    if not legal_moves:
+        return encode_board_to_1d_board(game.board), -10, True  # Invalid move penalty
 
-    make_move(piece_name, new_x, new_y)
+    board_piece.make_move1(piece, new_x, new_y, game.board)
 
     # Determine reward
     reward = 0
-    if is_winning() == "Red wins":
+    winner = board_piece.is_winning()
+    if winner == "Red wins":
         reward = 100
         done = True
-    elif is_winning() == "Black wins":
+    elif winner == "Black wins":
         reward = -100
         done = True
+    elif winner == "Game continues":
+        done = False
     else:
         done = game.is_draw()
 
-
-    return encode_pieces_to_1d_board(pieces), reward, done
+    return encode_board_to_1d_board(game.board), reward, done
 
 
 EPISODES = 1000
 # Training loop with Pygame
 move_count = 0
 for episode in range(EPISODES):
-    state = encode_pieces_to_1d_board(init_board())  # Reset the Pygame board
+    state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
     total_reward = 0
 
     for t in range(200):  # Max steps per episode

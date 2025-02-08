@@ -1,7 +1,5 @@
 from attributes import *
 
-
-
 def change_sides(side):
     if side == "Red":
         side = side.replace("Red", "Black")
@@ -11,10 +9,10 @@ def change_sides(side):
     return side
 
 
-def is_winning():
-    if "Black General" not in pieces:
+def is_winning(board):
+    if find_piece(-5, board) == None:
         return "Red wins"
-    elif "Red General" not in pieces:
+    elif find_piece(5, board) == None:
         return "Black wins"
     else:
         return "Game continues"
