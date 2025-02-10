@@ -16,10 +16,3 @@ class game:
         [0, 0, 0, 0, 0, 0, 0, 0, 0],
         [1, 2, 3, 4, 5, 6, 7, 8, 9],
     ]
-
-    def save_state(self, piece_name, init_x, init_y, new_x, new_y):
-        self.piece_name = piece_name
-        self.init_x = init_x
-        self.init_y = init_y
-        self.new_x = new_x
-        self.new_y = new_y

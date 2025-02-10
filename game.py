@@ -1,4 +1,4 @@
-import numpy as np
+"""import numpy as np
 from attributes import grid_x, grid_y
 
 class game:
@@ -106,3 +106,4 @@ class game:
         for row in self.board:
             print(row)
 
+"""

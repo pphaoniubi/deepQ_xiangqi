@@ -39,7 +39,7 @@ def step(piece, new_x, new_y, init_x, init_y):
     if not legal_moves:
         return encode_board_to_1d_board(game.board), -10, True  # Invalid move penalty
 
-    board_piece.make_move1(piece, new_x, new_y, game.board)
+    board_piece.make_move(piece, new_x, new_y, game.board)
 
     # Determine reward
     reward = 0
