@@ -4,25 +4,36 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(state_size, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Linear(256, action_size)
-        )
+
+        # Convolutional layers to extract spatial features
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(64 * 10 * 9, 1024)  # Adjust for board size (10x9)
+        self.fc2 = nn.Linear(1024, 512)
+        self.fc3 = nn.Linear(512, 256)
+        self.fc4 = nn.Linear(256, action_size)
 
     def forward(self, x):
-        return self.model(x)
+        x = x.view(-1, 1, 10, 9)  # Reshape input to (batch, channels, height, width)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = x.view(x.size(0), -1)  # Flatten
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        return self.fc4(x)
 
 # Hyperparameters
 STATE_SIZE = 90  # 10x9 board
 ACTION_SIZE = 90  # Simplified action space
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 GAMMA = 0.99
 EPSILON = 1.0
 EPSILON_MIN = 0.05  # AI will still explore 5% of the time at the end
