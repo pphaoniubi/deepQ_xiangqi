@@ -4,6 +4,7 @@ import numpy as np
 import board_piece
 from game_state import game
 import os
+import time;
 
 
 def encode_board_to_1d_board(board):
@@ -78,76 +79,85 @@ if os.path.exists(r"C:\Users\Peter\Desktop\deepQ_xiangqi\checkpoint.pth"):
 EPISODES = 100000
 # Training loop with Pygame
 move_count = 0
-for episode in range(start_episode, EPISODES):
+start_time = time.time()
 
-    game.board = game.board_init
-    state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
-    total_reward = 0
-    turn = 1
-    
-    count = 0
-    for t in range(200):
+try:
+    #for episode in range(start_episode, EPISODES):
+    for episode in range(0, EPISODES):
 
-        legal_piece_actions = []  # Store all valid (piece, action) pairs
-        for piece in range(1, 17) if turn == 1 else range(-16, 0):  # Iterate over all pieces
-            legal_moves = board_piece.get_legal_moves(piece, game.board)
-            legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
-
-            for action in legal_action_indices:
-                legal_piece_actions.append((piece, action))  # Store valid (piece, action) pairs
-
-        # Choose an action (random or based on policy)
-        if random.random() < EPSILON:
-            piece, action = random.choice(legal_piece_actions)  # Explore
-
-        else:
-            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
-            q_values = policy_net(state_tensor).cpu().detach().numpy().squeeze()
-
-            # Find the best (piece, action) pair using Q-values
-            best_q_value = -float('inf')
-            best_pair = None
-            for piece, action in legal_piece_actions:
-                if q_values[action] > best_q_value:
-                    best_q_value = q_values[action]
-                    best_pair = (piece, action)
-
-            piece, action = best_pair  # Select the best piece-action pair
-
-        # Take the action and observe the new state
-        next_state, reward, done = step(piece, action) # 这里是1D board
-        replay_buffer.append((state, action, reward, next_state, done))
-
-        # Train the network
-        train_dqn()                         
-
-        state = next_state
-        total_reward += reward
-
-        turn = 1 - turn
-
-        count = t
-
-        if done:
-            break
-
-    # Decay epsilon
-    if EPSILON > EPSILON_MIN:
-        EPSILON *= EPSILON_DECAY
-
-    # Update target network periodically
-    if episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
+        game.board = game.board_init
+        state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
+        total_reward = 0
+        turn = 1
         
-        checkpoint = {
-            'policy_net': policy_net.state_dict(),
-            'target_net': target_net.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'episode': episode
-        }
-        
-        torch.save(checkpoint, "checkpoint.pth")
-        print(f"Checkpoint saved at episode {episode}")
+        count = 0
+        for t in range(200):
+
+            legal_piece_actions = []  # Store all valid (piece, action) pairs
+            for piece in range(1, 17) if turn == 1 else range(-16, 0):  # Iterate over all pieces
+                legal_moves = board_piece.get_legal_moves(piece, game.board)
+                legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
+
+                for action in legal_action_indices:
+                    legal_piece_actions.append((piece, action))  # Store valid (piece, action) pairs
+
+            # Choose an action (random or based on policy)
+            if random.random() < EPSILON:
+                piece, action = random.choice(legal_piece_actions)  # Explore
+
+            else:
+                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+                q_values = policy_net(state_tensor).cpu().detach().numpy().squeeze()
+
+                # Find the best (piece, action) pair using Q-values
+                best_q_value = -float('inf')
+                best_pair = None
+                for piece, action in legal_piece_actions:
+                    if q_values[action] > best_q_value:
+                        best_q_value = q_values[action]
+                        best_pair = (piece, action)
+
+                piece, action = best_pair  # Select the best piece-action pair
+
+            # Take the action and observe the new state
+            next_state, reward, done = step(piece, action) # 这里是1D board
+            replay_buffer.append((state, action, reward, next_state, done))
+
+            # Train the network
+            train_dqn()                         
+
+            state = next_state
+            total_reward += reward
+
+            turn = 1 - turn
+
+            count = t
+
+            if done:
+                break
+
+        # Decay epsilon
+        if EPSILON > EPSILON_MIN:
+            EPSILON *= EPSILON_DECAY
+
+        # Update target network periodically
+        if episode % TARGET_UPDATE == 0:
+            target_net.load_state_dict(policy_net.state_dict())
+            
+            checkpoint = {
+                'policy_net': policy_net.state_dict(),
+                'target_net': target_net.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'episode': episode
+            }
+            
+            torch.save(checkpoint, "checkpoint.pth")
+            print(f"Checkpoint saved at episode {episode}")
 
 
-    print(f"Episode {episode}, Total Reward: {total_reward}, Move count: {count}")
+        print(f"Episode {episode}, Total Reward: {total_reward}, Move count: {count}")
+
+except KeyboardInterrupt:
+    end_time = time.time()  # Stop timer on Ctrl+C
+    running_time = end_time - start_time
+    print("\nRunning time:", running_time, "seconds")
