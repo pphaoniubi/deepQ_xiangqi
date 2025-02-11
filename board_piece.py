@@ -29,7 +29,14 @@ def find_piece(piece, board):
         if found:
             break
     if found:
-        return init_x, init_y
+        return (init_x, init_y)
+    else:
+        return None
+
+def find_piece_1d(piece, board_1d):
+    for i in range(len(board_1d)):
+        if board_1d[i] == piece:
+            return i
     else:
         return None
 
@@ -41,8 +48,24 @@ def make_move(piece, new_x, new_y, board):
 
     return board
 
+
+def make_move_1d(piece, new_index, board_1d, reward):
+    old_index = find_piece_1d(piece, board_1d)
+    if board_1d[new_index] > 0:
+        reward -= 10
+    elif board_1d[new_index] < 0:
+        reward += 10
+    board_1d[old_index] = 0
+    board_1d[new_index] = piece
+
+    return board_1d, reward
+
 def get_legal_moves(piece, board):
-    init_x, init_y = find_piece(piece, board)
+    pos = find_piece(piece, board)
+    if pos == None:
+        return []
+    init_x = pos[0]
+    init_y = pos[1]
 
     if abs(piece) == 1 or abs(piece) == 9:
             legal_moves = []
@@ -107,8 +130,8 @@ def get_legal_moves(piece, board):
                         legal_moves.append((new_x, new_y))
                     elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
                         break
-                    elif (board[y][x] < 0 and piece > 0) or (board[y][x] > 0 and piece < 0):  # Enemy piece, valid for capture
-                        legal_moves.append((x, y))
+                    elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
+                        legal_moves.append((new_x, new_y))
                         break  # Stop after capturing
 
         return legal_moves
@@ -145,7 +168,7 @@ def get_legal_moves(piece, board):
                         elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
                             continue
                         elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
-                            legal_moves.append((x, y))
+                            legal_moves.append((new_x, new_y))
 
         return legal_moves
 
@@ -168,8 +191,8 @@ def get_legal_moves(piece, board):
                     legal_moves.append((new_x, new_y))
                 elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
                     continue
-                elif (board[y][x] < 0 and piece > 0) or (board[y][x] > 0 and piece < 0):  # Enemy piece, valid for capture
-                    legal_moves.append((x, y))
+                elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
+                    legal_moves.append((new_x, new_y))
 
         return legal_moves
     
@@ -192,8 +215,8 @@ def get_legal_moves(piece, board):
                     legal_moves.append((new_x, new_y))
                 elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
                     continue
-                elif (board[y][x] < 0 and piece > 0) or (board[y][x] > 0 and piece < 0):  # Enemy piece, valid for capture
-                    legal_moves.append((x, y))
+                elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
+                    legal_moves.append((new_x, new_y))
 
         return legal_moves
 
@@ -253,8 +276,14 @@ def get_legal_moves(piece, board):
             new_x, new_y = init_x + dx, init_y + dy
 
             # Vérifier si la position est valide
-            if 0 <= new_x < 9 and 0 <= new_y < 10 and board[new_y][new_x] <= 0 if piece > 0 else board[new_y][new_x] >= 0:
-                legal_moves.append((new_x, new_y))  # Ajout du mouvement
+            if not (0 <= new_x < 9 and 0 <= new_y < 10):
+                break
+            elif board[new_y][new_x] == 0:
+                legal_moves.append((new_x, new_y))
+            elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
+                continue
+            elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
+                legal_moves.append((new_x, new_y))
 
         return legal_moves
 

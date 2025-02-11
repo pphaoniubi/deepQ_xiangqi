@@ -14,6 +14,20 @@ def encode_board_to_1d_board(board):
 
     return np.array(board_flat)
 
+def encode_1d_board_to_board(board_1d):
+    """
+    Convert a 1D board representation back to a 2D Xiangqi board.
+    
+    :param board_1d: List of 90 elements representing the board in 1D format.
+    :return: 2D list (10x9) representing the board.
+    """
+    if len(board_1d) != 90:
+        raise ValueError("Invalid board size: Expected 90 elements")
+
+    board_2d = [board_1d[i * 9:(i + 1) * 9] for i in range(10)]  # Convert to 10x9 grid
+    return board_2d
+
+
 def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
     index = []
     for legal_move in legal_moves:
@@ -21,7 +35,7 @@ def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
 
     return index
 
-def step(piece, new_x, new_y, init_x, init_y):
+def step(piece, new_index):
     """
     Execute the action in the Pygame game and return the new state, reward, and done status.
     :param action_index: Index of the action to take
@@ -29,30 +43,20 @@ def step(piece, new_x, new_y, init_x, init_y):
     :param game: Instance of your Pygame Xiangqi game
     :return: New state, reward, done
     """
-    # Decode the action index back to a move
-    start = (init_x,  init_y)
-    end = (new_x, new_y)
-    move = (start, end)
-
-    legal_moves = board_piece.get_legal_moves(piece, game.board)
-    if legal_moves == []:
-        return encode_board_to_1d_board(game.board), -10, True  # Invalid move penalty
-
-    board_piece.make_move(piece, new_x, new_y, game.board)      # make move on 1D
-
-    # Determine reward
     reward = 0
+    board_1d, reward = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), reward)      # make move on 1D
+
+    game.board = encode_1d_board_to_board(board_1d)
+
     winner = board_piece.is_winning(game.board)
     if winner == "Red wins":
-        reward = 100
+        reward += 2000
         done = True
     elif winner == "Black wins":
-        reward = -100
+        reward -= 2000
         done = True
     elif winner == "Game continues":
         done = False
-    else:
-        done = game.is_draw()
 
     return encode_board_to_1d_board(game.board), reward, done
 
@@ -64,38 +68,50 @@ for episode in range(EPISODES):
     game.board = game.board_init
     state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
     total_reward = 0
-
+    turn = 1
+    
+    count = 0
     for t in range(200):
 
-        random_piece = random.randint(1, 16)
-        print(random_piece)
-        legal_moves = board_piece.get_legal_moves(random_piece, game.board)
-        legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE)        # 1d space
-
-        # retry until legal action found
-        while len(legal_action_indices) == 0:
-            random_piece = random.randint(1, 16)
-            legal_moves = board_piece.get_legal_moves(random_piece, game.board)
+        legal_piece_actions = []  # Store all valid (piece, action) pairs
+        for piece in range(1, 17) if turn == 1 else range(-16, 0):  # Iterate over all pieces
+            legal_moves = board_piece.get_legal_moves(piece, game.board)
             legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
+
+            for action in legal_action_indices:
+                legal_piece_actions.append((piece, action))  # Store valid (piece, action) pairs
 
         # Choose an action (random or based on policy)
         if random.random() < EPSILON:
-            action = random.choice(legal_action_indices)  # Explore
-                           # THIS IS WRONG, ONLY FOR DEBUGGING FOR NOW 
+            piece, action = random.choice(legal_piece_actions)  # Explore
+
         else:
             state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
             q_values = policy_net(state_tensor).cpu().detach().numpy().squeeze()
-            action = legal_action_indices[np.argmax(q_values[legal_action_indices])]
+
+            # Find the best (piece, action) pair using Q-values
+            best_q_value = -float('inf')
+            best_pair = None
+            for piece, action in legal_piece_actions:
+                if q_values[action] > best_q_value:
+                    best_q_value = q_values[action]
+                    best_pair = (piece, action)
+
+            piece, action = best_pair  # Select the best piece-action pair
 
         # Take the action and observe the new state
-        next_state, reward, done = step(random_piece, legal_move[0], legal_move[1], game.init_x, game.init_y) # 这里应该是1D board的吧
+        next_state, reward, done = step(piece, action) # 这里是1D board
         replay_buffer.append((state, action, reward, next_state, done))
 
         # Train the network
-        train_dqn()
+        train_dqn()                         
 
         state = next_state
         total_reward += reward
+
+        turn = 1 - turn
+
+        count = t
 
         if done:
             break
@@ -108,4 +124,4 @@ for episode in range(EPISODES):
     if episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
-    print(f"Episode {episode}, Total Reward: {total_reward}")
+    print(f"Episode {episode}, Total Reward: {total_reward}, Move count: {count}")
