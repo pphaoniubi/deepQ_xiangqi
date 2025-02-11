@@ -146,7 +146,7 @@ def get_legal_moves(piece, board):
                             legal_moves.append((new_x, new_y))
                         elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
                             continue
-                        elif (board[y][x] < 0 and piece > 0) or (board[y][x] > 0 and piece < 0):  # Enemy piece, valid for capture
+                        elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                             legal_moves.append((x, y))
 
         return legal_moves
@@ -208,7 +208,7 @@ def get_legal_moves(piece, board):
         
         for dx, dy in directions:
             x, y = init_x, init_y
-            passed_piece = False  # Indicateur pour savoir si une pièce a été rencontrée
+            passed_piece = 0  # Indicateur pour savoir si une pièce a été rencontrée
 
             while True:
                 x += dx
@@ -219,14 +219,15 @@ def get_legal_moves(piece, board):
                     break  # Stop si hors du plateau
                 
                 # Vérifier les cases
-                if board[y][x] == 0:  # Case vide
+                if board[y][x] == 0 and passed_piece == 0:  # Case vide
                     legal_moves.append((x, y))
                 elif board[y][x] != 0:  # Pièce alliée
-                    if not passed_piece:  # Une pièce alliée bloque la route, on ne peut pas passer
-                        passed_piece = True
-                    else:  # Si une pièce a été passée, on peut sauter
+                    if passed_piece == 0:
+                        passed_piece += 1
+                    else: 
                         if (board[y][x] > 0 and piece < 0) or (board[y][x] < 0 and piece > 0):
                             legal_moves.append((x, y))
+                            break
                         else: 
                             break
             
@@ -238,14 +239,14 @@ def get_legal_moves(piece, board):
 
         # Vérifier si le soldat a traversé la rivière
         if piece > 0:  # Soldat rouge (兵) avance vers le bas
-            has_crossed_river = init_y >= 5
-            moves = [(0, 1)]  # Avancer uniquement vers le bas
+            has_crossed_river = (init_y <= 4)
+            moves = [(0, -1)]  # Avancer uniquement vers le bas
             if has_crossed_river:
                 moves += [(-1, 0), (1, 0)]  # Peut aller à gauche et à droite après la rivière
         
         else:  # Soldat noir (卒) avance vers le haut
-            has_crossed_river = init_y <= 4
-            moves = [(0, -1)]  # Avancer uniquement vers le haut
+            has_crossed_river = (init_y >= 5)
+            moves = [(0, 1)]  # Avancer uniquement vers le haut
             if has_crossed_river:
                 moves += [(-1, 0), (1, 0)]  # Peut aller à gauche et à droite après la rivière
 

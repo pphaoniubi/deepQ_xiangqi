@@ -36,10 +36,10 @@ def step(piece, new_x, new_y, init_x, init_y):
     move = (start, end)
 
     legal_moves = board_piece.get_legal_moves(piece, game.board)
-    if not legal_moves:
+    if legal_moves == []:
         return encode_board_to_1d_board(game.board), -10, True  # Invalid move penalty
 
-    board_piece.make_move(piece, new_x, new_y, game.board)
+    board_piece.make_move(piece, new_x, new_y, game.board)      # make move on 1D
 
     # Determine reward
     reward = 0
@@ -62,25 +62,34 @@ EPISODES = 1000
 # Training loop with Pygame
 move_count = 0
 for episode in range(EPISODES):
+    game.board = game.board_init
     state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
     total_reward = 0
-    random_piece = random.randint(1, 16)
-    print(random_piece)
+
     for t in range(200):
 
+        random_piece = random.randint(1, 16)
+        print(random_piece)
         legal_moves = board_piece.get_legal_moves(random_piece, game.board)
         legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE)        # 1d space
+
+        # retry until legal action found
+        while len(legal_action_indices) == 0:
+            random_piece = random.randint(1, 16)
+            legal_moves = board_piece.get_legal_moves(random_piece, game.board)
+            legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
 
         # Choose an action (random or based on policy)
         if random.random() < EPSILON:
             action = random.choice(legal_action_indices)  # Explore
+                           # THIS IS WRONG, ONLY FOR DEBUGGING FOR NOW 
         else:
             state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
             q_values = policy_net(state_tensor).cpu().detach().numpy().squeeze()
             action = legal_action_indices[np.argmax(q_values[legal_action_indices])]
 
         # Take the action and observe the new state
-        next_state, reward, done = step(random_piece, game.new_x, game.new_y, game.init_x, game.init_y)
+        next_state, reward, done = step(random_piece, game.new_x, game.new_y, game.init_x, game.init_y) # 这里应该是1D board的吧
         replay_buffer.append((state, action, reward, next_state, done))
 
         # Train the network

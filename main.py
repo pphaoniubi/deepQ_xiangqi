@@ -60,5 +60,6 @@ while True:
 
     legal_move_chosen = legal_moves[choice]
 
-    game.board = board_piece.make_move1(piece, legal_move_chosen[0], legal_move_chosen[1], game.board)
+    game.board = board_piece.make_move(piece, legal_move_chosen[0], legal_move_chosen[1], game.board)
 
+    #马
