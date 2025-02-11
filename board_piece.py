@@ -1,5 +1,3 @@
-from attributes import *
-
 def change_sides(side):
     if side == "Red":
         side = side.replace("Red", "Black")

@@ -1,7 +1,6 @@
 from training_attributes import *
 import random
 import numpy as np
-from attributes import *
 import board_piece
 from game_state import game
 
@@ -89,7 +88,7 @@ for episode in range(EPISODES):
             action = legal_action_indices[np.argmax(q_values[legal_action_indices])]
 
         # Take the action and observe the new state
-        next_state, reward, done = step(random_piece, game.new_x, game.new_y, game.init_x, game.init_y) # 这里应该是1D board的吧
+        next_state, reward, done = step(random_piece, legal_move[0], legal_move[1], game.init_x, game.init_y) # 这里应该是1D board的吧
         replay_buffer.append((state, action, reward, next_state, done))
 
         # Train the network
