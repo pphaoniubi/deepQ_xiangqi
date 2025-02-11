@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
@@ -33,13 +32,13 @@ class DQN(nn.Module):
 # Hyperparameters
 STATE_SIZE = 90  # 10x9 board
 ACTION_SIZE = 90  # Simplified action space
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 GAMMA = 0.99
 EPSILON = 1.0
 EPSILON_MIN = 0.05  # AI will still explore 5% of the time at the end
 EPSILON_DECAY = 0.99997  # Ensures exploration lasts exactly 200,000 episodes
 LEARNING_RATE = 0.001
-TARGET_UPDATE = 10  # Update target network every 10 episodes
+TARGET_UPDATE = 100  # Update target network every 10 episodes
 
 # Replay Buffer
 replay_buffer = deque(maxlen=100000)

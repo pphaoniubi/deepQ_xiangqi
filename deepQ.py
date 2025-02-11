@@ -3,6 +3,7 @@ import random
 import numpy as np
 import board_piece
 from game_state import game
+import os
 
 
 def encode_board_to_1d_board(board):
@@ -61,10 +62,24 @@ def step(piece, new_index):
     return encode_board_to_1d_board(game.board), reward, done
 
 
-EPISODES = 1000
+# load parameters
+if os.path.exists(r"C:\Users\Peter\Desktop\deepQ_xiangqi\checkpoint.pth"):
+
+    checkpoint = torch.load("checkpoint.pth")
+
+    print("Saved keys in .pth file:", checkpoint.keys())
+
+    policy_net.load_state_dict(checkpoint['policy_net'])
+    target_net.load_state_dict(checkpoint['target_net'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+
+    start_episode = checkpoint['episode']
+
+EPISODES = 100000
 # Training loop with Pygame
 move_count = 0
-for episode in range(EPISODES):
+for episode in range(start_episode, EPISODES):
+
     game.board = game.board_init
     state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
     total_reward = 0
@@ -123,5 +138,16 @@ for episode in range(EPISODES):
     # Update target network periodically
     if episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
+        
+        checkpoint = {
+            'policy_net': policy_net.state_dict(),
+            'target_net': target_net.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'episode': episode
+        }
+        
+        torch.save(checkpoint, "checkpoint.pth")
+        print(f"Checkpoint saved at episode {episode}")
+
 
     print(f"Episode {episode}, Total Reward: {total_reward}, Move count: {count}")
