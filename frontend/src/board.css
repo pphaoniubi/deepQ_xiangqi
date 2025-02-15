@@ -1,29 +1,59 @@
-.board-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+.xiangqi-board {
+  position: relative;
+  width: 450px;
+  height: 500px;
+  background-color: #f5d7aa;
+  border: 2px solid #333;
+  margin: 20px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.board {
-    display: grid;
-    grid-template-columns: repeat(8, 60px);
-    grid-template-rows: repeat(9, 60px);
-    gap: 2px;
-    background-color: #deb887; /* Light brown like a wooden board */
-    border: 3px solid black;
-    width: fit-content;
-    padding: 5px;
-  }
-  
-  .cell {
-    width: 60px;
-    height: 60px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 1px solid black;
-    font-size: 12px;
-    background-color: #f5deb3; /* Light wooden color */
-  }
-  
+/* Board grid lines */
+.board-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* Horizontal and vertical lines */
+.line {
+  position: absolute;
+  background: black;
+}
+
+.horizontal {
+  width: 100%;
+  height: 2px;
+}
+
+.vertical {
+  height: 100%;
+  width: 2px;
+}
+
+/* Piece styling */
+.piece {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  transform: translate(-50%, -50%);
+}
+
+.piece.red {
+  background: #f88;
+  color: #900;
+}
+
+.piece.black {
+  background: #888;
+  color: #000;
+}
