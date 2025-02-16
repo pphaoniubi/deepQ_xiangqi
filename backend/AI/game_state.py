@@ -1,9 +1,4 @@
 class game:
-    piece_name = ""
-    init_x = 0
-    init_y = 0
-    new_x = 0
-    new_y = 0
     board = [
         [-1, -2, -3, -4, -5, -6, -7, -8, -9],
         [0, 0, 0, 0, 0, 0, 0, 0, 0],

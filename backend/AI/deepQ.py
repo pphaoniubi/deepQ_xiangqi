@@ -1,7 +1,7 @@
 from training_attributes import *
 import random
 import numpy as np
-import board_piece
+import board_piece as board_piece
 from game_state import game
 import os
 import time;

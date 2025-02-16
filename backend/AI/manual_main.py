@@ -1,5 +1,5 @@
 from game_state import game
-import board_piece
+import board_piece as board_piece
 
 def draw_board(board):
     """
