@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import axios from "axios"
 import './board.css';
 
-// Initial piece setup (position is in 0-indexed row/column format)
+// INCOMPLETE
+const piece_mapping = {
+  "-1": "車", "-2": "♞", "-3": "♝", "-4": "♛", "-5": "♚", "-6": "♝", "-7": "♞", "-8": "♜", "-9": "♜",
+  "-10": "♝", "-11": "♝", "-12": "♟", "-13": "♟", "-14": "♟", "-15": "♟", "-16": "♟",
+  "1": "♖", "2": "♘", "3": "♗", "4": "♕", "5": "♔", "6": "♗", "7": "♘", "8": "♖", "9": "♖",
+  "10": "♗", "11": "♗", "12": "♙", "13": "♙", "14": "♙", "15": "♙", "16": "♙",
+  "0": ""
+}
 const initialPieces = [
   { id: 'r1', type: '車', color: 'black', position: { row: 0, col: 0 } },
   { id: 'r2', type: '車', color: 'black', position: { row: 0, col: 8 } },

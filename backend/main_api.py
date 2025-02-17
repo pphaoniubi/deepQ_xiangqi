@@ -1,7 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from database import get_db_connection
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Allow frontend requests (Adjust if needed)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (POST, GET, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
+
+
 
 # 📌 Get a user by ID
 @app.get("/users/{user_id}")
@@ -18,7 +29,7 @@ def get_user(user_id: int):
         raise HTTPException(status_code=404, detail="User not found")
 
 
-@app.post("/create_users")
+@app.post("/create_user")
 def create_user(name: str):
     connection = get_db_connection()
     with connection.cursor() as cursor:

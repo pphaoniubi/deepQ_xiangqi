@@ -3,7 +3,7 @@ import pymysql
 # MySQL Database Configuration
 DB_CONFIG = {
     "host": "localhost",
-    "user": "pphaoniubi",
+    "user": "root",
     "password": "12345678pP!",
     "database": "xiangqi_db",
     "cursorclass": pymysql.cursors.DictCursor  # Returns results as dictionaries
