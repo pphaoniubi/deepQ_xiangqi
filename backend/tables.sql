@@ -1,13 +1,23 @@
 CREATE TABLE games (
     game_id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    board_state JSONB NOT NULL, 
-    turn INT NOT NULL,
-    status      
+    username VARCHAR(20) NOT NULL,
+    board_state JSON NOT NULL DEFAULT  ('[[-1, -2, -3, -4, -5, -6, -7, -8, -9],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, -10, 0, 0, 0, 0, 0, -11, 0],
+        [-12, 0, -13, 0, -14, 0, -15, 0, -16],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [12, 0, 13, 0, 14, 0, 15, 0, 16],
+        [0, 10, 0, 0, 0, 0, 0, 11, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]]'), -- Default empty JSON object
+    turn INT NOT NULL DEFAULT 1, 
+    status VARCHAR(20) NOT NULL DEFAULT 'ongoing', -- Default game status
+    FOREIGN KEY (username) REFERENCES appUser(name)
 );
 
 
+
 create table appUser (
-    user_id SERIAL PRIMARY KEY,
-    name VARCHAR(255)
+    name VARCHAR(255) PRIMARY KEY
 )
