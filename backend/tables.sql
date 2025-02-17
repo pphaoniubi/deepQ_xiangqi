@@ -10,13 +10,11 @@ CREATE TABLE games (
         [12, 0, 13, 0, 14, 0, 15, 0, 16],
         [0, 10, 0, 0, 0, 0, 0, 11, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 2, 3, 4, 5, 6, 7, 8, 9]]'), -- Default empty JSON object
+        [1, 2, 3, 4, 5, 6, 7, 8, 9]]'),
     turn INT NOT NULL DEFAULT 1, 
     status VARCHAR(20) NOT NULL DEFAULT 'ongoing', -- Default game status
     FOREIGN KEY (username) REFERENCES appUser(name)
 );
-
-
 
 create table appUser (
     name VARCHAR(255) PRIMARY KEY

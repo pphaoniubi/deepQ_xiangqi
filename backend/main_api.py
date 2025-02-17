@@ -38,23 +38,16 @@ def create_user(name: str):
     return {"message": "User created", "user_id": new_user_id}
 
 @app.post("/create_game")
-def create_user(name: str):
+def create_user(username: str):
     connection = get_db_connection()
     with connection.cursor() as cursor:
 
-        cursor.execute("SELECT COUNT(*) FROM game WHERE name = %s", (name,))
-        result = cursor.fetchone()
-        
-        if result["COUNT(*)"] > 0:
-            connection.close()
-            raise HTTPException(status_code=400, detail="User with this name already exists")
-
-        cursor.execute("INSERT INTO appUser (name) VALUES (%s)", (name,))
+        cursor.execute("INSERT INTO games (username) VALUES (%s)", (username,))
         connection.commit()
-        new_user_id = cursor.lastrowid
+        new_game_id = cursor.lastrowid
 
     connection.close()
-    return {"message": "User created", "user_id": new_user_id}
+    return {"message": "game created", "game_id": new_game_id}
 
 # 📌 Get all games
 @app.get("/games/")
