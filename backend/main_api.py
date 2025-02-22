@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from database import get_db_connection
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 app = FastAPI()
 
@@ -61,15 +62,17 @@ def create_user(username: str):
     return {"message": "game created", "game_id": new_game_id}
 
 @app.post("/get_piece_pos")
-def create_user(game_id: str):
+def create_user(username: str):
     connection = get_db_connection()
     with connection.cursor() as cursor:
 
-        cursor.execute("SELECT board_state FROM games WHERE game_id = %s", (game_id,))
+        cursor.execute("SELECT board_state FROM games WHERE username = %s", (username,))
         result = cursor.fetchone()
 
     connection.close()
-    return {"message": "game created", "board": result["board_state"]}
+
+    board_data = json.loads(result["board_state"])
+    return {"message": "board fetched", "board": board_data}
 
 # 📌 Get all games
 @app.get("/games/")

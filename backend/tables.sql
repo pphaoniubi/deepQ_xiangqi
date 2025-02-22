@@ -12,10 +12,5 @@ CREATE TABLE games (
         [0, 0, 0, 0, 0, 0, 0, 0, 0],
         [1, 2, 3, 4, 5, 6, 7, 8, 9]]'),
     turn INT NOT NULL DEFAULT 1, 
-    status VARCHAR(20) NOT NULL DEFAULT 'ongoing', -- Default game status
-    FOREIGN KEY (username) REFERENCES appUser(name)
+    status VARCHAR(20) NOT NULL DEFAULT 'ongoing' -- Default game status
 );
-
-create table appUser (
-    name VARCHAR(255) PRIMARY KEY
-)

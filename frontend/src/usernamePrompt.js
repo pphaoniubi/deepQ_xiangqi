@@ -13,7 +13,7 @@ const UsernamePrompt = () => {
     console.log(username.trim())
     if (username.trim() !== "") {
         try {
-            const response = await axios.post(`http://localhost:8000/create_user?name=${username}`);
+            const response = await axios.post(`http://localhost:8000/create_game?username=${username}`);
             if (response.status === 200) { // Check if request is successful
                 console.log("Response:", response.data);
                 navigate("/game_board"); // Redirect to Dashboard after success
