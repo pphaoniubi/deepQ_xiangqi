@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext } from "react";
+import { UserContext } from "./UserContext";
 import { useNavigate } from "react-router-dom"; 
 import axios from "axios"
 
 const UsernamePrompt = () => {
-  const [username, setUsername] = useState("");
+  const { username, setUsername } = useContext(UserContext);
   const navigate = useNavigate(); 
 
   // Handle username submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log(username.trim())
     if (username.trim() !== "") {
         try {
             const response = await axios.post(`http://localhost:8000/create_user?name=${username}`);
             if (response.status === 200) { // Check if request is successful
                 console.log("Response:", response.data);
-                localStorage.setItem("username", username);
                 navigate("/game_board"); // Redirect to Dashboard after success
               }
           } catch (error) {

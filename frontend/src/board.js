@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { UserContext } from "./UserContext";
 import axios from "axios"
 import './board.css';
 
 // INCOMPLETE
 const piece_mapping = {
-  "-1": "車", "-2": "♞", "-3": "♝", "-4": "♛", "-5": "♚", "-6": "♝", "-7": "♞", "-8": "♜", "-9": "♜",
+  "-1": "車", "-2": "傌", "-3": "象", "-4": "士", "-5": "將", "-6": "士", "-7": "象", "-8": "♜", "-9": "車",
   "-10": "♝", "-11": "♝", "-12": "♟", "-13": "♟", "-14": "♟", "-15": "♟", "-16": "♟",
   "1": "♖", "2": "♘", "3": "♗", "4": "♕", "5": "♔", "6": "♗", "7": "♘", "8": "♖", "9": "♖",
   "10": "♗", "11": "♗", "12": "♙", "13": "♙", "14": "♙", "15": "♙", "16": "♙",
@@ -51,16 +52,25 @@ const Board = () => {
   const cols = 9;
   const rows = 10;
   const cellSize = boardSize / (cols - 1); // Distance between crosses
+  const [board, setBoard] = useState(Array(rows).fill().map(() => Array(cols).fill(null)));
+  const { username } = useContext(UserContext);
 
   const getPiecePos = async (e) => {
-    e.preventDefault();
+
     try {
-      const response = await axios.post("https://localhost:8000/get_piece_pos");
+      const response = await axios.post(`http://localhost:8000/get_piece_pos?game_id=${username}`);
+      setBoard(response.data)
       console.log("Data submitted:", response.data);
     } catch (error) {
       console.error("Error getting position:", error);
     }
   }
+
+  useEffect(() => {
+
+      getPiecePos();
+    
+  }, [username]);
 
   return (
     <div className="xiangqi-board">
@@ -85,7 +95,7 @@ const Board = () => {
       </div>
 
       {/* Pieces */}
-      {initialPieces.map((piece) => (
+      {/*initialPieces.map((piece) => (
         <div
           key={piece.id}
           className={`piece ${piece.color}`}
@@ -95,6 +105,19 @@ const Board = () => {
           }}
         >
           {piece.type[0].toUpperCase()}
+        </div >
+      ))*/}
+
+      {board.map((row, rowIndex) => (
+        <div key={rowIndex} style={{ display: "flex" }}>
+          {row.map((cell, colIndex) => (
+            <div 
+              key={colIndex} 
+              style={{ padding: "10px", border: "1px solid black" }}
+            >
+              {cell}
+            </div>
+          ))}
         </div>
       ))}
     </div>

@@ -60,6 +60,17 @@ def create_user(username: str):
     connection.close()
     return {"message": "game created", "game_id": new_game_id}
 
+@app.post("/get_piece_pos")
+def create_user(game_id: str):
+    connection = get_db_connection()
+    with connection.cursor() as cursor:
+
+        cursor.execute("SELECT board_state FROM games WHERE game_id = %s", (game_id,))
+        result = cursor.fetchone()
+
+    connection.close()
+    return {"message": "game created", "board": result["board_state"]}
+
 # 📌 Get all games
 @app.get("/games/")
 def get_games():
