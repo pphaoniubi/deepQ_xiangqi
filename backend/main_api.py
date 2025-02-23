@@ -2,15 +2,16 @@ from fastapi import FastAPI, HTTPException
 from database import get_db_connection
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import json
 import AI.board_piece
 
 app = FastAPI()
 
-class LegalMovesRequest(BaseModel):
-    piece: int
-    board: List[List[int]]
+class BoardRequest(BaseModel):
+    username: Optional[str]
+    piece: Optional[int]
+    board: Optional[List[List[int]]]
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,8 +47,19 @@ def create_user(username: str):
     return {"message": "board fetched", "board": board_data}
 
 @app.post("/get_legal_moves")
-def get_legal_moves(request: LegalMovesRequest):
+def get_legal_moves(request: BoardRequest):
     print(request.piece, request.board)
     legal_moves = AI.board_piece.get_legal_moves(request.piece, request.board)
 
     return {"legal_moves": legal_moves}
+
+@app.post("/save_board")
+def save_board(request: BoardRequest):
+    connection = get_db_connection()
+    with connection.cursor() as cursor:
+
+        cursor.execute("UPDATE games SET board_state = %s WHERE username = %s", (request.board, request.username))
+        connection.commit()
+
+    connection.close()
+    return {"message": "board saved"}

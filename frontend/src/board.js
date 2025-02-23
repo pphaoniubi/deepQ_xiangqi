@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from "./UserContext";
 import axios from "axios"
 import './board.css';
@@ -19,7 +19,8 @@ const Board = () => {
   const [legalMoves, setLegalMoves] = useState([]);
   const { username } = useContext(UserContext);
 
-  const getPiecePos = async () => {
+
+  const getBoard = async () => {
     if (!username) return;
 
     try {
@@ -29,6 +30,7 @@ const Board = () => {
       console.error("Error getting position:", error);
     }
   };
+
 
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
     if (piece === 0) return;
@@ -52,6 +54,7 @@ const Board = () => {
     }
   };
 
+
   const handleCellClick = (rowIndex, colIndex) => {
     if (!selectedPiece) return;
   
@@ -69,7 +72,7 @@ const Board = () => {
   };
 
   useEffect(() => {
-      getPiecePos();
+    getBoard();
   }, [username]);
 
   return (
