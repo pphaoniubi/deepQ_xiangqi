@@ -8,11 +8,9 @@ import AI.board_piece
 
 app = FastAPI()
 
-
 class LegalMovesRequest(BaseModel):
     piece: int
     board: List[List[int]]
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +46,8 @@ def create_user(username: str):
     return {"message": "board fetched", "board": board_data}
 
 @app.post("/get_legal_moves")
-def get_legal_moves(piece: int, board: List[List[int]]):
-    legal_moves = AI.board_piece.get_legal_moves(piece, board)
+def get_legal_moves(request: LegalMovesRequest):
+    print(request.piece, request.board)
+    legal_moves = AI.board_piece.get_legal_moves(request.piece, request.board)
 
     return {"legal_moves": legal_moves}

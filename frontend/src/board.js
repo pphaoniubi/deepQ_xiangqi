@@ -3,7 +3,6 @@ import { UserContext } from "./UserContext";
 import axios from "axios"
 import './board.css';
 
-// INCOMPLETE
 const pieceMapping = {
   "-1": "車", "-2": "傌", "-3": "象", "-4": "士", "-5": "將", "-6": "士", "-7": "象", "-8": "傌", "-9": "車",
   "-10": "炮", "-11": "炮", "-12": "卒", "-13": "卒", "-14": "卒", "-15": "卒", "-16": "卒",
@@ -31,25 +30,42 @@ const Board = () => {
     }
   };
 
-
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
-    if (piece === 0) return; // Ignore empty cells
+    if (piece === 0) return;
   
     console.log("Selected Piece:", piece, "at", rowIndex, colIndex);
     setSelectedPiece({ row: rowIndex, col: colIndex, piece });
-    setLegalMoves([]); // Reset previous legal moves
+    setLegalMoves([]);
   
     try {
       const response = await axios.post(`http://localhost:8000/get_legal_moves`, {
         piece: piece,
         board: board
-      });
-  
-      console.log("Legal Moves:", response.data.moves);
-      setLegalMoves(response.data.moves);
+      }, 
+      { headers: { "Content-Type": "application/json" }}
+    );
+    const reversedMoves = response.data.legal_moves.map(move => move.reverse());
+      console.log("Legal Moves:", reversedMoves);
+      setLegalMoves(reversedMoves);
     } catch (error) {
       console.error("Error fetching legal moves:", error);
     }
+  };
+
+  const handleCellClick = (rowIndex, colIndex) => {
+    if (!selectedPiece) return;
+  
+    console.log(`Moving piece ${selectedPiece.piece} to (${rowIndex}, ${colIndex})`);
+  
+    setBoard((prevBoard) => {
+      const newBoard = prevBoard.map((row) => [...row]);
+      newBoard[rowIndex][colIndex] = selectedPiece.piece;
+      newBoard[selectedPiece.row][selectedPiece.col] = 0;
+      return newBoard;
+    });
+  
+    setSelectedPiece(null);
+    setLegalMoves([]);
   };
 
   useEffect(() => {
@@ -77,32 +93,41 @@ const Board = () => {
         ))}
       </div>
 
-      {board.map((row, rowIndex) =>
-        row.map((piece, colIndex) => {
-          const isLegalMove = legalMoves.some(([r, c]) => r === rowIndex && c === colIndex);
+      {Array.isArray(board) &&
+        board.map((row, rowIndex) =>
 
-          return (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              className={`cell ${isLegalMove ? "legal-move" : ""}`}
-              onClick={() =>
-                piece !== 0
-                  ? handlePieceClick(rowIndex, colIndex, piece)
-                  : isLegalMove && handleCellClick(rowIndex, colIndex)
-              }
-              style={{
-                position: "absolute",
-                left: `${(colIndex / (cols - 1)) * 100}%`,
-                top: `${(rowIndex / (rows - 1)) * 100}%`,
-                transform: "translate(-50%, -50%)",
-                backgroundColor: isLegalMove ? "rgba(0, 255, 0, 0.3)" : "transparent", 
-              }}
-            >
-              {pieceMapping[piece.toString()]}
-            </div>
-          );
-        })
-      )}
+          Array.isArray(row) &&
+          row.map((piece, colIndex) => {
+
+            const isLegalMove = legalMoves.some(([r, c]) => r === rowIndex && c === colIndex);
+
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`
+                ${piece < 0 ? "piece black" : ""} 
+
+                ${piece > 0 ? "piece red" : ""} 
+
+                ${isLegalMove ? "legal-move" : ""}`}
+
+                onClick={() =>           
+                  piece !== 0
+                  ? handlePieceClick(rowIndex, colIndex, piece, board)
+                  : isLegalMove && handleCellClick(rowIndex, colIndex)}
+
+                style={{
+                  position: "absolute",
+                  left: `${(colIndex / (cols - 1)) * 100}%`,
+                  top: `${(rowIndex / (rows - 1)) * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                {pieceMapping[piece.toString()]}
+              </div>
+            );
+          })
+        )}
     </div>
   );
 };

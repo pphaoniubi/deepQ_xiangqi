@@ -159,7 +159,6 @@ def get_legal_moves(piece, board):
             # Vérifier que la destination est sur le plateau
             if 0 <= new_x < 9 and 0 <= new_y < 10:
                 if (new_y <= 4) or (new_y >= 5):
-                    # Vérifier si la "jambe" est bloquée
                     block_x, block_y = block_positions[(dx, dy)]
                     if board[block_y][block_x] == 0:  # Pas d'obstacle
                         # Vérifier que la case de destination est vide ou contient un ennemi

@@ -54,3 +54,12 @@
   background: #888;
   color: #000;
 }
+
+.legal-move {
+  background-color: rgba(0, 255, 0, 0.4);
+  border: 2px solid green;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+}
