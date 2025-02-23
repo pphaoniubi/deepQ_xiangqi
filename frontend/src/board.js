@@ -55,17 +55,27 @@ const Board = () => {
   };
 
 
-  const handleCellClick = (rowIndex, colIndex) => {
+  const handleCellClick = async (rowIndex, colIndex) => {
     if (!selectedPiece) return;
   
     console.log(`Moving piece ${selectedPiece.piece} to (${rowIndex}, ${colIndex})`);
   
-    setBoard((prevBoard) => {
-      const newBoard = prevBoard.map((row) => [...row]);
-      newBoard[rowIndex][colIndex] = selectedPiece.piece;
-      newBoard[selectedPiece.row][selectedPiece.col] = 0;
-      return newBoard;
-    });
+
+
+    const newBoard = board.map((row) => [...row]);
+    newBoard[rowIndex][colIndex] = selectedPiece.piece;
+    newBoard[selectedPiece.row][selectedPiece.col] = 0;
+
+    setBoard(newBoard);
+    
+    const response = await axios.post(`http://localhost:8000/save_board`, {
+      username: username,
+      board: newBoard
+    }, 
+    { headers: { "Content-Type": "application/json" }}
+  );
+
+  console.log(response.data.message)
   
     setSelectedPiece(null);
     setLegalMoves([]);

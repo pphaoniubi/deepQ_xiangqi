@@ -9,9 +9,9 @@ import AI.board_piece
 app = FastAPI()
 
 class BoardRequest(BaseModel):
-    username: Optional[str]
-    piece: Optional[int]
-    board: Optional[List[List[int]]]
+    username: Optional[str] = None
+    piece: Optional[int] = None
+    board: Optional[List[List[int]]] = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,9 +56,10 @@ def get_legal_moves(request: BoardRequest):
 @app.post("/save_board")
 def save_board(request: BoardRequest):
     connection = get_db_connection()
+    print(request.username, request.board)
     with connection.cursor() as cursor:
-
-        cursor.execute("UPDATE games SET board_state = %s WHERE username = %s", (request.board, request.username))
+        board_json = json.dumps(request.board)
+        cursor.execute("UPDATE games SET board_state = %s WHERE username = %s", (board_json, request.username))
         connection.commit()
 
     connection.close()
