@@ -10,7 +10,7 @@ This is a Chinese Chess (Xiangqi) with Reinforcement Learning project. It includ
 - Use ReactJS to display the chessboard and receive AI moves.
   
 **Project Goal:**<br>
-The main goal of this project is to learn how to integrate a Deep Q-Learning algorithm into a full-stack application, including both frontend and backend. Specifically, we use ReactJS for the frontend and Python FastAPI for the backend.
+- The main goal of this project is to learn how to integrate a Deep Q-Learning algorithm into a full-stack application, including both frontend and backend. Specifically, we use ReactJS for the frontend and Python FastAPI for the backend.
 
 **Key Takeaways:**<br>
 - When coding, we must constantly find ways to optimize computing power to save hardware resources and execution time.
