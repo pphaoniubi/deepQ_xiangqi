@@ -16,10 +16,11 @@ const Board = () => {
   const cols = 9;
   const rows = 10;
   const [board, setBoard] = useState(Array(rows).fill().map(() => Array(cols).fill(0)));
+  const [selectedPiece, setSelectedPiece] = useState(null);
+  const [legalMoves, setLegalMoves] = useState([]);
   const { username } = useContext(UserContext);
 
   const getPiecePos = async () => {
-    console.log("Fetching data for:", username);
     if (!username) return;
 
     try {
@@ -30,17 +31,33 @@ const Board = () => {
     }
   };
 
+
+  const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
+    if (piece === 0) return; // Ignore empty cells
+  
+    console.log("Selected Piece:", piece, "at", rowIndex, colIndex);
+    setSelectedPiece({ row: rowIndex, col: colIndex, piece });
+    setLegalMoves([]); // Reset previous legal moves
+  
+    try {
+      const response = await axios.post(`http://localhost:8000/get_legal_moves`, {
+        piece: piece,
+        board: board
+      });
+  
+      console.log("Legal Moves:", response.data.moves);
+      setLegalMoves(response.data.moves);
+    } catch (error) {
+      console.error("Error fetching legal moves:", error);
+    }
+  };
+
   useEffect(() => {
-    console.log("useEffect triggered. Username:", username); 
       getPiecePos();
   }, [username]);
 
-  useEffect(() => {
-  }, [board]); // Runs when `board` is updated
-
   return (
     <div className="xiangqi-board">
-      {/* Board Background */}
       <div className="board-lines">
         {/* Horizontal Lines */}
         {Array.from({ length: rows }).map((_, i) => (
@@ -60,28 +77,32 @@ const Board = () => {
         ))}
       </div>
 
-      {/* Render only the pieces from the board */}
-      {Array.isArray(board) &&
-        board.map((row, rowIndex) =>
-          Array.isArray(row) &&
-          row.map((piece, colIndex) => {
-            if (piece === 0) return null; // Skip empty cells
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={`piece ${piece < 0 ? "black" : "red"}`}
-                style={{
-                  position: "absolute",
-                  left: `${(colIndex / (cols - 1)) * 100}%`,
-                  top: `${(rowIndex / (rows - 1)) * 100}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                {pieceMapping[piece.toString()]}
-              </div>
-            );
-          })
-        )}
+      {board.map((row, rowIndex) =>
+        row.map((piece, colIndex) => {
+          const isLegalMove = legalMoves.some(([r, c]) => r === rowIndex && c === colIndex);
+
+          return (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              className={`cell ${isLegalMove ? "legal-move" : ""}`}
+              onClick={() =>
+                piece !== 0
+                  ? handlePieceClick(rowIndex, colIndex, piece)
+                  : isLegalMove && handleCellClick(rowIndex, colIndex)
+              }
+              style={{
+                position: "absolute",
+                left: `${(colIndex / (cols - 1)) * 100}%`,
+                top: `${(rowIndex / (rows - 1)) * 100}%`,
+                transform: "translate(-50%, -50%)",
+                backgroundColor: isLegalMove ? "rgba(0, 255, 0, 0.3)" : "transparent", 
+              }}
+            >
+              {pieceMapping[piece.toString()]}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };

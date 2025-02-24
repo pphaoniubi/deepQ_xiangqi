@@ -10,14 +10,12 @@
   align-items: center;
 }
 
-/* Board grid lines */
 .board-lines {
   position: absolute;
   width: 100%;
   height: 100%;
 }
 
-/* Horizontal and vertical lines */
 .line {
   position: absolute;
   background: black;
@@ -33,7 +31,6 @@
   width: 2px;
 }
 
-/* Piece styling */
 .piece {
   position: absolute;
   width: 40px;
