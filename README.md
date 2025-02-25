@@ -2,6 +2,9 @@
 
 This is a Chinese Chess (Xiangqi) with Reinforcement Learning project. It includes game logic, a training algorithm, frontend code, and backend code.
 
+**Motivation:**<br>
+- The motivation behind this project is I'd like to learn more about reinforcement learning and how to integrate it into a full-stack application.
+
 **Project Steps:**<br>
 - Implement the game logic, including piece movements and win conditions.
 - Integrate the AI agent to control the pieces.
