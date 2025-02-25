@@ -56,12 +56,14 @@ const Board = () => {
 
 
   const handleCellClick = async (rowIndex, colIndex) => {
-    if (!selectedPiece) return;
-  
-    console.log(`Moving piece ${selectedPiece.piece} to (${rowIndex}, ${colIndex})`);
-  
+    if (!selectedPiece || !legalMoves) return;
 
-
+    const isLegal = legalMoves.some(
+      (move) => move[0] === rowIndex && move[1] === colIndex
+    );
+  
+    if (!isLegal) return;
+    
     const newBoard = board.map((row) => [...row]);
     newBoard[rowIndex][colIndex] = selectedPiece.piece;
     newBoard[selectedPiece.row][selectedPiece.col] = 0;
@@ -124,10 +126,19 @@ const Board = () => {
 
                 ${isLegalMove ? "legal-move" : ""}`}
 
-                onClick={() =>           
-                  piece !== 0
-                  ? handlePieceClick(rowIndex, colIndex, piece, board)
-                  : isLegalMove && handleCellClick(rowIndex, colIndex)}
+                onClick={() => {
+                  if (piece !== 0) {
+                    if (!selectedPiece)
+                      handlePieceClick(rowIndex, colIndex, piece, board);
+                    else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece))
+                      console.log(Math.sign(piece))
+                      handleCellClick(rowIndex, colIndex);
+                  } else {
+                    if (isLegalMove) {
+                      handleCellClick(rowIndex, colIndex);
+                    }
+                  }
+                }}
 
                 style={{
                   position: "absolute",
