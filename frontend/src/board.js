@@ -18,23 +18,57 @@ const Board = () => {
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [turn, setTurn] = useState(null);
+  const [gameOver, setGameOver] = useState(false);
   const { username } = useContext(UserContext);
 
 
   const getBoard = async () => {
-    if (!username) return;
+    if (!username || gameOver) return;
 
     try {
       const response = await axios.post(`http://localhost:8000/get_piece_pos?username=${username}`);
+      
+      const blackGeneralExists = response.data.board?.some(row => row.includes(-5));
+      const redGeneralExists = response.data.board?.some(row => row.includes(5));
+
+      if (!blackGeneralExists) {
+        console.log("red wins!!");
+      }
+      else if (!redGeneralExists) {
+        console.log("black wins!!");
+      }
+
       setBoard(response.data.board);
     } catch (error) {
       console.error("Error getting position:", error);
     }
   };
 
+  
+  const isWinner = (board) => {
+    if (!username) return;
+
+    try {
+      
+      const blackGeneralExists = board?.some(row => row.includes(-5));
+      const redGeneralExists = board?.some(row => row.includes(5));
+
+      if (!blackGeneralExists) {
+        console.log("red wins!!");
+        setGameOver(true);
+      }
+      else if (!redGeneralExists) {
+        console.log("black wins!!");
+        setGameOver(true);
+      }
+
+    } catch (error) {
+      console.error("Error checking winner:", error);
+    }
+  };
 
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
-    if (piece === 0) return;
+    if (piece === 0 || gameOver) return;
 
     const turnResponse = await axios.post(`http://localhost:8000/get_turn`, {
       username: username
@@ -68,16 +102,19 @@ const Board = () => {
     }
   };
 
-  const handleMoveClick = async (rowIndex, colIndex, piece) => {
-    if (!selectedPiece || !legalMoves) return;
-
+  const cancelPieceClick = (piece) => {
     if (selectedPiece)
       if(piece === selectedPiece.piece)
       {
         console.log("selectedPiece.piece", selectedPiece.piece)
         setSelectedPiece(null);
+        setLegalMoves([]);
         return;
       }
+  }
+
+  const handleMoveClick = async (rowIndex, colIndex) => {
+    if (!selectedPiece || !legalMoves || gameOver) return;
 
     const isLegal = legalMoves.some(
       (move) => move[0] === rowIndex && move[1] === colIndex
@@ -91,15 +128,24 @@ const Board = () => {
 
     setBoard(newBoard);
     
-    const save_board = await axios.post(`http://localhost:8000/save_board`, {
+    await axios.post(`http://localhost:8000/save_board`, {
       username: username,
       board: newBoard
     }, 
     { headers: { "Content-Type": "application/json" }}
   );
 
+    await axios.post(`http://localhost:8000/flip_turn`, {     // flip turn
+      username: username,
+      turn: turn
+    }, 
+    { headers: { "Content-Type": "application/json" }}
+  );
+
     setSelectedPiece(null);
     setLegalMoves([]);
+
+    isWinner(newBoard);
   };
 
   useEffect(() => {
@@ -109,6 +155,7 @@ const Board = () => {
   return (
     <div className="xiangqi-board">
       <div className="board-lines">
+        {gameOver && <div className="game-over">Game Over!</div>}
         {/* Horizontal Lines */}
         {Array.from({ length: rows }).map((_, i) => (
           <div
@@ -146,15 +193,28 @@ const Board = () => {
                 ${isLegalMove ? "legal-move" : ""}`}
 
                 onClick={() => {
+                  if (gameOver) return;
+                  
                   if (piece !== 0) {
                     if (!selectedPiece)
                       handlePieceClick(rowIndex, colIndex, piece, board);
+
+                    else if(selectedPiece && piece === selectedPiece.piece) // cancel
+                      cancelPieceClick(piece);
+
+                    else if(selectedPiece && piece !== selectedPiece.piece
+                      && Math.sign(piece) === Math.sign(selectedPiece.piece)
+                    ) // reselect
+                    {
+                      cancelPieceClick(piece);
+                      handlePieceClick(rowIndex, colIndex, piece, board);
+                    }
+
                     else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece.piece))
-                      console.log(Math.sign(selectedPiece.piece))
-                    handleMoveClick(rowIndex, colIndex, piece);
+                      handleMoveClick(rowIndex, colIndex);
                   } else {
                     if (isLegalMove) {
-                      handleMoveClick(rowIndex, colIndex, piece);
+                      handleMoveClick(rowIndex, colIndex);
                     }
                   }
                 }}

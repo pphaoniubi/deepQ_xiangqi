@@ -67,7 +67,8 @@ def save_board(request: BoardRequest):
 
 
 @app.post("/flip_turn")
-def save_board(request: BoardRequest):
+def flip_turn(request: BoardRequest):
+    print(request.username)
     connection = get_db_connection()
     with connection.cursor() as cursor:
         turn =  1 - request.turn
@@ -79,7 +80,7 @@ def save_board(request: BoardRequest):
 
 
 @app.post("/get_turn")
-def save_board(request: BoardRequest):
+def get_turn(request: BoardRequest):
     connection = get_db_connection()
     with connection.cursor() as cursor:
         cursor.execute("SELECT turn FROM games WHERE username = %s", (request.username,))

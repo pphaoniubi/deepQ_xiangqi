@@ -223,7 +223,6 @@ def get_legal_moves(piece, board):
                 if not (0 <= x < 9 and 0 <= y < 10):
                     break
                 
-
                 if board[y][x] == 0 and passed_piece == 0:
                     legal_moves.append((x, y))
                 elif board[y][x] != 0:
@@ -242,7 +241,6 @@ def get_legal_moves(piece, board):
     elif abs(piece) in (12, 13, 14, 15, 16): 
         legal_moves = []
 
-
         if piece > 0:
             has_crossed_river = (init_y <= 4)
             moves = [(0, -1)] 
@@ -259,7 +257,7 @@ def get_legal_moves(piece, board):
             new_x, new_y = init_x + dx, init_y + dy
 
             if not (0 <= new_x < 9 and 0 <= new_y < 10):
-                break
+                continue
             elif board[new_y][new_x] == 0:
                 legal_moves.append((new_x, new_y))
             elif (board[new_y][new_x] > 0 and piece > 0) or (board[new_y][new_x] < 0 and piece < 0):    # friendly piece
@@ -268,4 +266,3 @@ def get_legal_moves(piece, board):
                 legal_moves.append((new_x, new_y))
 
         return legal_moves
-
