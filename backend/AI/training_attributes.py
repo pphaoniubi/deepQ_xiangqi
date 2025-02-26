@@ -30,15 +30,15 @@ class DQN(nn.Module):
         return self.fc4(x)
 
 # Hyperparameters
-STATE_SIZE = 90  # 10x9 board
-ACTION_SIZE = 90  # Simplified action space
+STATE_SIZE = 90
+ACTION_SIZE = 90
 BATCH_SIZE = 256
 GAMMA = 0.99
 EPSILON = 1.0
-EPSILON_MIN = 0.05  # AI will still explore 5% of the time at the end
-EPSILON_DECAY = 0.99997  # Ensures exploration lasts exactly 200,000 episodes
+EPSILON_MIN = 0.05
+EPSILON_DECAY = 0.99997
 LEARNING_RATE = 0.001
-TARGET_UPDATE = 100  # Update target network every 10 episodes
+TARGET_UPDATE = 100
 
 # Replay Buffer
 replay_buffer = deque(maxlen=100000)
@@ -50,6 +50,46 @@ target_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.Adam(policy_net.parameters(), lr=LEARNING_RATE)
 loss_fn = nn.MSELoss()
+
+policy_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)  # Move model to device
+
+# Load the checkpoint **only once**
+checkpoint_path = r"C:\Users\Peter\Desktop\deepQ_xiangqi\backend\AI\checkpoint.pth"
+checkpoint = torch.load(checkpoint_path, map_location=device)
+
+# Load state_dict into the model
+policy_net.load_state_dict(checkpoint['policy_net'])
+
+# Ensure model is in evaluation mode
+policy_net.eval()
+
+print("Model loaded successfully!")
+
+
+def generate_moves(board):
+    board_tensor = torch.tensor(board, dtype=torch.float32).unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        q_values = policy_net(board_tensor)  # Forward pass to get Q-values
+
+    # Convert Q-values to a list
+    q_values_list = q_values.squeeze().tolist()
+
+    # Find the best action (highest Q-value)
+    best_action_index = max(range(len(q_values_list)), key=lambda i: q_values_list[i])
+
+    # Decode the move
+    best_move = decode_move(best_action_index)
+
+    # Extract piece at (from_row, from_col)
+    from_row, from_col, to_row, to_col = best_move
+    piece = board[from_row][from_col]  # Identify which piece is moving
+
+    return {
+        "piece": piece, 
+        "from": (from_row, from_col), 
+        "to": (to_row, to_col)
+    }
 
 
 def train_dqn():

@@ -19,6 +19,7 @@ const Board = () => {
   const [legalMoves, setLegalMoves] = useState([]);
   const [turn, setTurn] = useState(null);
   const [gameOver, setGameOver] = useState(false);
+  const [AIMoves, setAIMoves] = useState({});
   const { username } = useContext(UserContext);
 
 
@@ -67,8 +68,28 @@ const Board = () => {
     }
   };
 
+  
+  const getAIMoves = async () => {
+    if (!username || gameOver) return;
+
+    try {
+      const response = await axios.post(`http://localhost:8000/get_ai_moves`, {
+        board: board 
+      }, {
+        "headers": { "Content-Type": "application/json" }
+      });
+      console.log("AI moves", response.data.AI_moves)
+      setAIMoves(response.data.AI_moves);
+    } catch (error) {
+      console.error("Error getting position:", error);
+    }
+  };
+
+
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
     if (piece === 0 || gameOver) return;
+    getAIMoves(board);
+    console.log("board", board)
 
     const turnResponse = await axios.post(`http://localhost:8000/get_turn`, {
       username: username
@@ -194,7 +215,7 @@ const Board = () => {
 
                 onClick={() => {
                   if (gameOver) return;
-                  
+
                   if (piece !== 0) {
                     if (!selectedPiece)
                       handlePieceClick(rowIndex, colIndex, piece, board);

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import json
 import AI.board_piece
+import AI.training_attributes
 
 app = FastAPI()
 
@@ -88,3 +89,11 @@ def get_turn(request: BoardRequest):
 
     connection.close()
     return turn 
+
+
+@app.post("/get_ai_moves")
+def get_ai_moves(request: BoardRequest):
+
+    AI_moves = AI.training_attributes.generate_moves(request.board)
+    
+    return {"AI_moves": AI_moves} 
