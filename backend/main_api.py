@@ -12,6 +12,7 @@ class BoardRequest(BaseModel):
     username: Optional[str] = None
     piece: Optional[int] = None
     board: Optional[List[List[int]]] = None
+    turn: Optional[int] = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +57,6 @@ def get_legal_moves(request: BoardRequest):
 @app.post("/save_board")
 def save_board(request: BoardRequest):
     connection = get_db_connection()
-    print(request.username, request.board)
     with connection.cursor() as cursor:
         board_json = json.dumps(request.board)
         cursor.execute("UPDATE games SET board_state = %s WHERE username = %s", (board_json, request.username))
@@ -64,3 +64,26 @@ def save_board(request: BoardRequest):
 
     connection.close()
     return {"message": "board saved"}
+
+
+@app.post("/flip_turn")
+def save_board(request: BoardRequest):
+    connection = get_db_connection()
+    with connection.cursor() as cursor:
+        turn =  1 - request.turn
+        cursor.execute("UPDATE games SET turn = %s WHERE username = %s", (turn, request.username))
+        connection.commit()
+
+    connection.close()
+    return {"message": "turn flipped"}
+
+
+@app.post("/get_turn")
+def save_board(request: BoardRequest):
+    connection = get_db_connection()
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT turn FROM games WHERE username = %s", (request.username,))
+        turn = cursor.fetchone()
+
+    connection.close()
+    return turn 

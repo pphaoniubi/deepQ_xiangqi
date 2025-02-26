@@ -17,6 +17,7 @@ const Board = () => {
   const [board, setBoard] = useState(Array(rows).fill().map(() => Array(cols).fill(0)));
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
+  const [turn, setTurn] = useState(null);
   const { username } = useContext(UserContext);
 
 
@@ -34,11 +35,24 @@ const Board = () => {
 
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
     if (piece === 0) return;
+
+    const turnResponse = await axios.post(`http://localhost:8000/get_turn`, {
+      username: username
+    }, 
+    { headers: { "Content-Type": "application/json" }}
+    );
+
+    if ((turnResponse.data.turn === 1 && piece < 0) || (turnResponse.data.turn === 0 && piece > 0)) 
+      { console.log("wrong turn!");
+        return;
+      }
+    setTurn(turnResponse.data.turn);
   
-    console.log("Selected Piece:", piece, "at", rowIndex, colIndex);
     setSelectedPiece({ row: rowIndex, col: colIndex, piece });
     setLegalMoves([]);
-  
+
+    console.log("Selected Piece:", piece, "at", rowIndex, colIndex);
+
     try {
       const response = await axios.post(`http://localhost:8000/get_legal_moves`, {
         piece: piece,
@@ -54,9 +68,16 @@ const Board = () => {
     }
   };
 
-
-  const handleCellClick = async (rowIndex, colIndex) => {
+  const handleMoveClick = async (rowIndex, colIndex, piece) => {
     if (!selectedPiece || !legalMoves) return;
+
+    if (selectedPiece)
+      if(piece === selectedPiece.piece)
+      {
+        console.log("selectedPiece.piece", selectedPiece.piece)
+        setSelectedPiece(null);
+        return;
+      }
 
     const isLegal = legalMoves.some(
       (move) => move[0] === rowIndex && move[1] === colIndex
@@ -70,15 +91,13 @@ const Board = () => {
 
     setBoard(newBoard);
     
-    const response = await axios.post(`http://localhost:8000/save_board`, {
+    const save_board = await axios.post(`http://localhost:8000/save_board`, {
       username: username,
       board: newBoard
     }, 
     { headers: { "Content-Type": "application/json" }}
   );
 
-  console.log(response.data.message)
-  
     setSelectedPiece(null);
     setLegalMoves([]);
   };
@@ -130,12 +149,12 @@ const Board = () => {
                   if (piece !== 0) {
                     if (!selectedPiece)
                       handlePieceClick(rowIndex, colIndex, piece, board);
-                    else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece))
-                      console.log(Math.sign(piece))
-                      handleCellClick(rowIndex, colIndex);
+                    else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece.piece))
+                      console.log(Math.sign(selectedPiece.piece))
+                    handleMoveClick(rowIndex, colIndex, piece);
                   } else {
                     if (isLegalMove) {
-                      handleCellClick(rowIndex, colIndex);
+                      handleMoveClick(rowIndex, colIndex, piece);
                     }
                   }
                 }}
