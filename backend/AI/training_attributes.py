@@ -6,6 +6,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from dotenv import load_dotenv
 import os
+import AI.board_piece
+import AI.deepQ
+
 
 load_dotenv()
 
@@ -14,21 +17,20 @@ class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
 
-        # Convolutional layers to extract spatial features
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(64 * 10 * 9, 1024)  # Adjust for board size (10x9)
+        self.fc1 = nn.Linear(64 * 10 * 9, 1024)
         self.fc2 = nn.Linear(1024, 512)
         self.fc3 = nn.Linear(512, 256)
         self.fc4 = nn.Linear(256, action_size)
 
     def forward(self, x):
-        x = x.view(-1, 1, 10, 9)  # Reshape input to (batch, channels, height, width)
+        x = x.view(-1, 1, 10, 9)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
-        x = x.view(x.size(0), -1)  # Flatten
+        x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
@@ -71,30 +73,52 @@ policy_net.eval()
 print("Model loaded successfully!")
 
 
-def generate_moves(board):
-    board_tensor = torch.tensor(board, dtype=torch.float32).unsqueeze(0).to(device)
+def generate_moves(board_state):
 
-    with torch.no_grad():
-        q_values = policy_net(board_tensor)  # Forward pass to get Q-values
+    checkpoint_path = os.getenv("FILE_PATH")
+    
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
 
-    # Convert Q-values to a list
-    q_values_list = q_values.squeeze().tolist()
+    checkpoint = torch.load(checkpoint_path)
+    
+    # Load the trained policy network
+    policy_net.load_state_dict(checkpoint['policy_net'])
+    policy_net.eval()  # Set model to evaluation mode
+    
+    print("AI Model Loaded. Generating best move...")
 
-    # Find the best action (highest Q-value)
-    best_action_index = max(range(len(q_values_list)), key=lambda i: q_values_list[i])
+    # Convert board state to tensor
+    state_tensor = torch.tensor(board_state, dtype=torch.float32).unsqueeze(0).to(device)
 
-    # Decode the move
-    best_move = decode_move(best_action_index)
+    # Get Q-values for all possible actions
+    with torch.no_grad():  # Disable gradient computation for inference
+        q_values = policy_net(state_tensor).cpu().numpy().squeeze()
 
-    # Extract piece at (from_row, from_col)
-    from_row, from_col, to_row, to_col = best_move
-    piece = board[from_row][from_col]  # Identify which piece is moving
+    # Generate list of all legal (piece, action) pairs
+    legal_piece_actions = []
+    for piece in range(-16, 0):
+        legal_moves = AI.board_piece.get_legal_moves(piece, board_state)
+        legal_action_indices = AI.deepQ.map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
 
-    return {
-        "piece": piece, 
-        "from": (from_row, from_col), 
-        "to": (to_row, to_col)
-    }
+        for action in legal_action_indices:
+            legal_piece_actions.append((piece, action)) 
+
+    best_q_value = -float('inf')
+    best_pair = None
+    for piece, action in legal_piece_actions:
+        if q_values[action] > best_q_value:
+            best_q_value = q_values[action]
+            best_pair = (piece, action)
+
+    if best_pair:
+        piece, action = best_pair
+        (row, col) = AI.deepQ.action_to_2d(action)
+        print(f"AI selected piece {piece} with action {(row, col)}")
+        return piece, (row, col)
+    else:
+        print("No valid move found!")
+        return None, None
 
 
 def train_dqn():

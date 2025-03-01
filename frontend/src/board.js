@@ -19,8 +19,8 @@ const Board = () => {
   const [legalMoves, setLegalMoves] = useState([]);
   const [turn, setTurn] = useState(null);
   const [gameOver, setGameOver] = useState(false);
-  const [AIMoves, setAIMoves] = useState({});
   const { username } = useContext(UserContext);
+  const [playerMoved, setPlayerMoved] = useState(false);
 
 
   const getBoard = async () => {
@@ -40,6 +40,7 @@ const Board = () => {
       }
 
       setBoard(response.data.board);
+      console.log(response.data.board);
     } catch (error) {
       console.error("Error getting position:", error);
     }
@@ -69,27 +70,81 @@ const Board = () => {
   };
 
   
-  const getAIMoves = async () => {
+  const AI_Turn = async () => {
     if (!username || gameOver) return;
 
+    const turnResponse = await axios.post(`http://localhost:8000/get_turn`, {
+        username: username
+    }, { headers: { "Content-Type": "application/json" } });
+
+    setTurn(turnResponse.data.turn);
+    console.log("AI turn", turnResponse.data.turn);
+    if (turnResponse.data.turn === 1) return; // If it's not AI's turn, exit
+
     try {
-      const response = await axios.post(`http://localhost:8000/get_ai_moves`, {
-        board: board 
-      }, {
-        "headers": { "Content-Type": "application/json" }
-      });
-      console.log("AI moves", response.data.AI_moves)
-      setAIMoves(response.data.AI_moves);
+        // ✅ Get AI move from backend
+        const response = await axios.post(`http://localhost:8000/get_ai_moves`, {
+            board: board 
+        }, { headers: { "Content-Type": "application/json" } });
+
+        const [piece, [destRow, destCol]] = response.data.AI_moves;
+
+        // ✅ Find the original position of the piece in the board
+        let originalRow = -1;
+        let originalCol = -1;
+
+        for (let r = 0; r < board.length; r++) {
+            for (let c = 0; c < board[r].length; c++) {
+                if (board[r][c] === piece) {  // Found the piece in the board
+                    originalRow = r;
+                    originalCol = c;
+                    break;
+                }
+            }
+        }
+
+        if (originalRow === -1 || originalCol === -1) {
+            console.error("❌ Error: AI piece not found on the board!");
+            return;
+        }
+
+        console.log(`🤖 AI Moving ${piece} from (${originalRow}, ${originalCol}) to (${destRow}, ${destCol})`);
+
+        // ✅ Update board with AI move
+        const newBoard = board.map(row => [...row]); // Copy board
+        newBoard[destRow][destCol] = piece;  // Move piece to destination
+        newBoard[originalRow][originalCol] = 0;  // Clear original position
+
+        setBoard(newBoard);
+
+        // ✅ Save updated board
+        await axios.post(`http://localhost:8000/save_board`, {
+            username: username,
+            board: newBoard
+        }, { headers: { "Content-Type": "application/json" } });
+
+        // ✅ Flip turn
+        const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {
+            username: username,
+            turn: turn
+        }, { headers: { "Content-Type": "application/json" } });
+
+        setTurn(response_new_turn.data.new_turn);
+
+        getBoard();
+        setPlayerMoved(false);
+        setSelectedPiece(null);
+        isWinner(newBoard);
+
     } catch (error) {
-      console.error("Error getting position:", error);
+        console.error("❌ Error getting AI position:", error);
     }
-  };
+};
+
 
 
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
-    if (piece === 0 || gameOver) return;
-    getAIMoves(board);
-    console.log("board", board)
+    if (piece <= 0 || gameOver) return;
 
     const turnResponse = await axios.post(`http://localhost:8000/get_turn`, {
       username: username
@@ -97,11 +152,13 @@ const Board = () => {
     { headers: { "Content-Type": "application/json" }}
     );
 
-    if ((turnResponse.data.turn === 1 && piece < 0) || (turnResponse.data.turn === 0 && piece > 0)) 
-      { console.log("wrong turn!");
-        return;
-      }
+    if (turnResponse.data.turn === 0) {
+      console.log("AI's turn!");
+      // console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
+      return;
+    }
     setTurn(turnResponse.data.turn);
+    console.log("checking turn ", turnResponse.data.turn);
   
     setSelectedPiece({ row: rowIndex, col: colIndex, piece });
     setLegalMoves([]);
@@ -127,7 +184,6 @@ const Board = () => {
     if (selectedPiece)
       if(piece === selectedPiece.piece)
       {
-        console.log("selectedPiece.piece", selectedPiece.piece)
         setSelectedPiece(null);
         setLegalMoves([]);
         return;
@@ -137,6 +193,7 @@ const Board = () => {
   const handleMoveClick = async (rowIndex, colIndex) => {
     if (!selectedPiece || !legalMoves || gameOver) return;
 
+    console.log("inside")
     const isLegal = legalMoves.some(
       (move) => move[0] === rowIndex && move[1] === colIndex
     );
@@ -156,22 +213,32 @@ const Board = () => {
     { headers: { "Content-Type": "application/json" }}
   );
 
-    await axios.post(`http://localhost:8000/flip_turn`, {     // flip turn
+    const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {     // tuen: 1 is red, 0 is black 
       username: username,
       turn: turn
     }, 
     { headers: { "Content-Type": "application/json" }}
-  );
+    );
 
+    setTurn(response_new_turn.data.new_turn);
     setSelectedPiece(null);
     setLegalMoves([]);
-
+    setPlayerMoved(true);
     isWinner(newBoard);
   };
 
   useEffect(() => {
     getBoard();
-  }, [username]);
+  }, [username, turn]);
+
+  useEffect(() => {
+    console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
+    
+    if (turn === 0  && playerMoved) {
+        console.log("AI_Turn is being called!");
+        AI_Turn();
+    }
+}, [turn, playerMoved]);
 
   return (
     <div className="xiangqi-board">

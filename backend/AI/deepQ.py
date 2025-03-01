@@ -20,7 +20,7 @@ def encode_1d_board_to_board(board_1d):
     if len(board_1d) != 90:
         raise ValueError("Invalid board size: Expected 90 elements")
 
-    board_2d = [board_1d[i * 9:(i + 1) * 9] for i in range(10)]  # Convert to 10x9 grid
+    board_2d = [board_1d[i * 9:(i + 1) * 9] for i in range(10)]
     return board_2d
 
 
@@ -30,6 +30,12 @@ def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
         index.append(legal_move[1] * 9 + legal_move[0])
 
     return index
+
+def action_to_2d(action_index):
+    row = action_index // 9
+    col = action_index % 9 
+    return row, col
+
 
 def step(piece, new_index):
     reward = 0
@@ -50,9 +56,10 @@ def step(piece, new_index):
     return encode_board_to_1d_board(game.board), reward, done
 
 def main():
-    if os.path.exists(r"C:\Users\Peter\Desktop\deepQ_xiangqi\backend\AI\checkpoint.pth"):
+    checkpoint_path = os.getenv("FILE_PATH")
+    if os.path.exists(checkpoint_path):
 
-        checkpoint = torch.load("checkpoint.pth")
+        checkpoint = torch.load(checkpoint_path)
 
         print("Saved keys in .pth file:", checkpoint.keys())
 

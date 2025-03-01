@@ -77,7 +77,7 @@ def flip_turn(request: BoardRequest):
         connection.commit()
 
     connection.close()
-    return {"message": "turn flipped"}
+    return {"new_turn": turn}
 
 
 @app.post("/get_turn")

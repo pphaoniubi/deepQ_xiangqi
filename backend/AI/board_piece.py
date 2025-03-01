@@ -15,7 +15,6 @@ def is_winning(board):
     else:
         return "Game continues"
     
-# Sorry for removing your make_move func
 
 def find_piece(piece, board):
     found = False
