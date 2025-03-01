@@ -4,6 +4,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
@@ -54,7 +59,7 @@ loss_fn = nn.MSELoss()
 policy_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)  # Move model to device
 
 # Load the checkpoint **only once**
-checkpoint_path = r"C:\Users\Peter\Desktop\deepQ_xiangqi\backend\AI\checkpoint.pth"
+checkpoint_path = os.getenv("FILE_PATH")
 checkpoint = torch.load(checkpoint_path, map_location=device)
 
 # Load state_dict into the model
