@@ -63,8 +63,6 @@ def main():
         start_episode = checkpoint['episode']
 
     EPISODES = 100000
-    # Training loop with Pygame
-    move_count = 0
     start_time = time.time()
 
     try:
@@ -72,7 +70,7 @@ def main():
         for episode in range(0, EPISODES):
 
             game.board = game.board_init
-            state = encode_board_to_1d_board(game.board)  # Reset the Pygame board
+            state = encode_board_to_1d_board(game.board)
             total_reward = 0
             turn = 1
             
