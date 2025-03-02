@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import json
-import AI.board_piece
-import AI.training_attributes
+import board_piece
+import training_attributes
 
 app = FastAPI()
 
@@ -51,7 +51,7 @@ def create_user(username: str):
 @app.post("/get_legal_moves")
 def get_legal_moves(request: BoardRequest):
     print(request.piece, request.board)
-    legal_moves = AI.board_piece.get_legal_moves(request.piece, request.board)
+    legal_moves = board_piece.get_legal_moves(request.piece, request.board)
 
     return {"legal_moves": legal_moves}
 
@@ -94,6 +94,6 @@ def get_turn(request: BoardRequest):
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
 
-    AI_moves = AI.training_attributes.generate_moves(request.board)
+    AI_moves = training_attributes.generate_moves(request.board)
     
     return {"AI_moves": AI_moves} 

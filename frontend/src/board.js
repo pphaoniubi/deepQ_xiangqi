@@ -104,7 +104,7 @@ const Board = () => {
         }
 
         if (originalRow === -1 || originalCol === -1) {
-            console.error("❌ Error: AI piece not found on the board!");
+            console.error("Error: AI piece not found on the board!");
             return;
         }
 
@@ -137,7 +137,7 @@ const Board = () => {
         isWinner(newBoard);
 
     } catch (error) {
-        console.error("❌ Error getting AI position:", error);
+        console.error("Error getting AI position:", error);
     }
 };
 
