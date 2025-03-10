@@ -108,22 +108,22 @@ const Board = () => {
             return;
         }
 
-        console.log(`🤖 AI Moving ${piece} from (${originalRow}, ${originalCol}) to (${destRow}, ${destCol})`);
+        console.log(`AI Moving ${piece} from (${originalRow}, ${originalCol}) to (${destRow}, ${destCol})`);
 
-        // ✅ Update board with AI move
+        //  Update board with AI move
         const newBoard = board.map(row => [...row]); // Copy board
         newBoard[destRow][destCol] = piece;  // Move piece to destination
         newBoard[originalRow][originalCol] = 0;  // Clear original position
 
         setBoard(newBoard);
 
-        // ✅ Save updated board
+        // Save updated board
         await axios.post(`http://localhost:8000/save_board`, {
             username: username,
             board: newBoard
         }, { headers: { "Content-Type": "application/json" } });
 
-        // ✅ Flip turn
+        // Flip turn
         const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {
             username: username,
             turn: turn

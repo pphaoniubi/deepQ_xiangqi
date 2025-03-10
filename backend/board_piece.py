@@ -48,16 +48,28 @@ def make_move(piece, new_x, new_y, board):
     return board
 
 
-def make_move_1d(piece, new_index, board_1d, reward):
-    old_index = find_piece_1d(piece, board_1d)
-    if board_1d[new_index] > 0:
-        reward -= 10
-    elif board_1d[new_index] < 0:
-        reward += 10
-    board_1d[old_index] = 0
-    board_1d[new_index] = piece
+def make_move_1d(piece, new_index, board_1d, turn):
+    if turn == 1:
+        reward_red = 0
+        old_index = find_piece_1d(piece, board_1d)
+        if board_1d[new_index] < 0:
+            reward_red += 300
 
-    return board_1d, reward
+        board_1d[old_index] = 0
+        board_1d[new_index] = piece
+
+        return board_1d, reward_red
+    
+    elif turn == 0:
+        reward_black = 0
+        old_index = find_piece_1d(piece, board_1d)
+        if board_1d[new_index] > 0:
+            reward_black += 300
+
+        board_1d[old_index] = 0
+        board_1d[new_index] = piece
+
+        return board_1d, reward_black
 
 def get_legal_moves(piece, board):
     pos = find_piece(piece, board)

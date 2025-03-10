@@ -16,7 +16,7 @@ load_dotenv()
 
 
 class DQN(nn.Module):
-    def __init__(self, state_size, action_size):
+    def __init__(self, action_size, color):
         super(DQN, self).__init__()
 
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
@@ -54,13 +54,13 @@ replay_buffer = deque(maxlen=100000)
 
 # Initialize networks
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-policy_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)
-target_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)
+policy_net = DQN(ACTION_SIZE, color).to(device)
+target_net = DQN(ACTION_SIZE, color).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 optimizer = optim.Adam(policy_net.parameters(), lr=LEARNING_RATE)
 loss_fn = nn.MSELoss()
 
-policy_net = DQN(STATE_SIZE, ACTION_SIZE).to(device)  # Move model to device
+policy_net = DQN(ACTION_SIZE).to(device)  # Move model to device
 
 # Load the checkpoint **only once**
 checkpoint_path = os.getenv("FILE_PATH")
@@ -104,23 +104,40 @@ def action_to_2d(action_index):
     return row, col
 
 
-def step(piece, new_index):
-    reward = 0
-    board_1d, reward = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), reward)      # make move on 1D
+def step(piece, new_index, turn):
+    if turn == 1:    
+        reward_red = 0
 
-    game.board = encode_1d_board_to_board(board_1d)
+        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn)      # make move on 1D
 
-    winner = board_piece.is_winning(game.board)
-    if winner == "Red wins":
-        reward += 2000
-        done = True
-    elif winner == "Black wins":
-        reward -= 2000
-        done = True
-    elif winner == "Game continues":
-        done = False
+        game.board = encode_1d_board_to_board(board_1d)
 
-    return encode_board_to_1d_board(game.board), reward, done
+        winner = board_piece.is_winning(game.board)
+        if winner == "Red wins":
+            reward_red += 2000
+            done = True
+
+        elif winner == "Game continues":
+            done = False
+
+        return encode_board_to_1d_board(game.board), reward_red, done
+    
+    elif turn == 0:    
+        reward_black = 0
+
+        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn)      # make move on 1D
+
+        game.board = encode_1d_board_to_board(board_1d)
+
+        winner = board_piece.is_winning(game.board)
+        if winner == "Black wins":
+            reward_black += 2000
+            done = True
+
+        elif winner == "Game continues":
+            done = False
+
+        return encode_board_to_1d_board(game.board), reward_black, done
 
 def generate_moves(board_state):
 
@@ -273,7 +290,7 @@ def main():
                     piece, action = best_pair  # Select the best piece-action pair
 
                 # Take the action and observe the new state
-                next_state, reward, done = step(piece, action) 
+                next_state, reward, done = step(piece, action, turn) 
                 replay_buffer.append((state, action, reward, next_state, done))
 
                 # Train the network
@@ -316,4 +333,4 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-main()
+# main()
