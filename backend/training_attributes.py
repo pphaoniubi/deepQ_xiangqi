@@ -10,13 +10,14 @@ from game_state import game
 import os
 import board_piece
 import time
+from utils import encode_board_to_1d_board, encode_1d_board_to_board
 
 
 load_dotenv()
 
 
 class DQN(nn.Module):
-    def __init__(self, action_size, color):
+    def __init__(self, action_size):
         super(DQN, self).__init__()
 
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
@@ -49,53 +50,46 @@ EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
 TARGET_UPDATE = 500
 
-# Replay Buffer
-replay_buffer = deque(maxlen=100000)
+# Separate replay buffers for red and black
+red_replay_buffer = deque(maxlen=100000)
+black_replay_buffer = deque(maxlen=100000)
 
-# Initialize networks
+# Initialize networks for both agents
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-policy_net = DQN(ACTION_SIZE, color).to(device)
-target_net = DQN(ACTION_SIZE, color).to(device)
-target_net.load_state_dict(policy_net.state_dict())
-optimizer = optim.Adam(policy_net.parameters(), lr=LEARNING_RATE)
-loss_fn = nn.MSELoss()
 
-policy_net = DQN(ACTION_SIZE).to(device)  # Move model to device
+# Red agent networks
+red_policy_net = DQN(ACTION_SIZE).to(device)
+red_target_net = DQN(ACTION_SIZE).to(device)
+red_target_net.load_state_dict(red_policy_net.state_dict())
+red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
 
-# Load the checkpoint **only once**
-checkpoint_path = os.getenv("FILE_PATH")
-checkpoint = torch.load(checkpoint_path, map_location=device)
+# Black agent networks
+black_policy_net = DQN(ACTION_SIZE).to(device)
+black_target_net = DQN(ACTION_SIZE).to(device)
+black_target_net.load_state_dict(black_policy_net.state_dict())
+black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
-# Load state_dict into the model
-policy_net.load_state_dict(checkpoint['policy_net'])
+# Load checkpoints if they exist
+red_checkpoint_path = os.getenv("RED_FILE_PATH")
+black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
 
-# Ensure model is in evaluation mode
-policy_net.eval()
+if os.path.exists(red_checkpoint_path):
+    red_checkpoint = torch.load(red_checkpoint_path, map_location=device)
+    red_policy_net.load_state_dict(red_checkpoint['policy_net'])
+    red_policy_net.eval()
+    print("Red model loaded successfully!")
 
-print("Model loaded successfully!")
-
-
-def encode_board_to_1d_board(board):
-    board_flat = []
-    for row in board:
-        for cross in row:
-            board_flat.append(cross)
-
-    return np.array(board_flat)
-
-def encode_1d_board_to_board(board_1d):
-    if len(board_1d) != 90:
-        raise ValueError("Invalid board size: Expected 90 elements")
-
-    board_2d = [board_1d[i * 9:(i + 1) * 9] for i in range(10)]
-    return board_2d
+if os.path.exists(black_checkpoint_path):
+    black_checkpoint = torch.load(black_checkpoint_path, map_location=device)
+    black_policy_net.load_state_dict(black_checkpoint['policy_net'])
+    black_policy_net.eval()
+    print("Black model loaded successfully!")
 
 
 def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
     index = []
     for legal_move in legal_moves:
         index.append(legal_move[1] * 9 + legal_move[0])
-
     return index
 
 def action_to_2d(action_index):
@@ -139,21 +133,27 @@ def step(piece, new_index, turn):
 
         return encode_board_to_1d_board(game.board), reward_black, done
 
-def generate_moves(board_state):
-
-    checkpoint_path = os.getenv("FILE_PATH")
+def generate_moves(board_state, turn):
+    """Generate moves for either red (turn=1) or black (turn=0) agent."""
+    
+    # Select the appropriate network based on turn
+    if turn == 1:
+        checkpoint_path = os.getenv("RED_FILE_PATH")
+        policy_net = red_policy_net
+    else:
+        checkpoint_path = os.getenv("BLACK_FILE_PATH")
+        policy_net = black_policy_net
     
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
 
     checkpoint = torch.load(checkpoint_path)
-
     episode = checkpoint['episode']
-    print("at episode: ", episode)
+    print(f"Using {'red' if turn == 1 else 'black'} agent at episode: {episode}")
     
     # Load the trained policy network
     policy_net.load_state_dict(checkpoint['policy_net'])
-    policy_net.eval()  # Set model to evaluation mode
+    policy_net.eval()
     
     print("AI Model Loaded. Generating best move...")
 
@@ -161,17 +161,21 @@ def generate_moves(board_state):
     state_tensor = torch.tensor(board_state, dtype=torch.float32).unsqueeze(0).to(device)
 
     # Get Q-values for all possible actions
-    with torch.no_grad():  # Disable gradient computation for inference
+    with torch.no_grad():
         q_values = policy_net(state_tensor).cpu().numpy().squeeze()
 
     # Generate list of all legal (piece, action) pairs
+    piece_range = range(1, 17) if turn == 1 else range(-16, 0)
     legal_piece_actions = []
-    for piece in range(-16, 0):
+    for piece in piece_range:
         legal_moves = board_piece.get_legal_moves(piece, board_state)
         legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
-
         for action in legal_action_indices:
-            legal_piece_actions.append((piece, action)) 
+            legal_piece_actions.append((piece, action))
+
+    if not legal_piece_actions:
+        print("No valid moves found!")
+        return None, None
 
     best_q_value = -float('inf')
     best_pair = None
@@ -182,7 +186,7 @@ def generate_moves(board_state):
 
     if best_pair:
         piece, action = best_pair
-        (row, col) = action_to_2d(action)
+        row, col = action_to_2d(action)
         print(f"AI selected piece {piece} with action {(row, col)}")
         return piece, (row, col)
     else:
@@ -190,42 +194,53 @@ def generate_moves(board_state):
         return None, None
 
 
-def train_dqn():
-    if len(replay_buffer) < BATCH_SIZE:
-        return  # Wait until buffer has enough samples
+def train_dqn(turn):
+    """Train the appropriate network based on the current turn."""
+    if turn == 1:  # Red's turn
+        if len(red_replay_buffer) < BATCH_SIZE:
+            return
+        
+        batch = random.sample(red_replay_buffer, BATCH_SIZE)
+        policy_net = red_policy_net
+        target_net = red_target_net
+        optimizer = red_optimizer
+        
+    else:  # Black's turn
+        if len(black_replay_buffer) < BATCH_SIZE:
+            return
+            
+        batch = random.sample(black_replay_buffer, BATCH_SIZE)
+        policy_net = black_policy_net
+        target_net = black_target_net
+        optimizer = black_optimizer
 
-    # Sample a mini-batch from replay buffer
-    batch = random.sample(replay_buffer, BATCH_SIZE)
-    
-    # Unpack batch: states, actions, rewards, next_states, dones
+    # Unpack batch
     states, actions, rewards, next_states, dones = zip(*batch)
 
-    # Convert lists of NumPy arrays into a single NumPy array
-    states_np = np.array(states, dtype=np.float32)  # Efficient conversion
+    # Convert to tensors
+    states_np = np.array(states, dtype=np.float32)
     next_states_np = np.array(next_states, dtype=np.float32)
-    actions_np = np.array(actions, dtype=np.int64)  # int64 for long tensors
-    rewards_np = np.array(rewards, dtype=np.float32).reshape(-1, 1)  # Reshape for batch processing
+    actions_np = np.array(actions, dtype=np.int64)
+    rewards_np = np.array(rewards, dtype=np.float32).reshape(-1, 1)
     dones_np = np.array(dones, dtype=np.float32).reshape(-1, 1)
 
-    # Convert NumPy arrays to PyTorch tensors
+    # Move to device
     states_tensor = torch.tensor(states_np, dtype=torch.float32).to(device)
     actions_tensor = torch.tensor(actions_np, dtype=torch.long).unsqueeze(1).to(device)
     rewards_tensor = torch.tensor(rewards_np, dtype=torch.float32).to(device)
     next_states_tensor = torch.tensor(next_states_np, dtype=torch.float32).to(device)
     dones_tensor = torch.tensor(dones_np, dtype=torch.float32).to(device)
 
-    # Compute current Q-values from policy_net
-    q_values = policy_net(states_tensor).gather(1, actions_tensor)  # Select Q-values of chosen actions
+    # Compute current Q values
+    current_q_values = policy_net(states_tensor).gather(1, actions_tensor)
 
-    # Compute target Q-values using Bellman equation
+    # Compute next Q values
     with torch.no_grad():
-        next_q_values = target_net(next_states_tensor).max(1, keepdim=True)[0]  # Max Q-value of next state
-        target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))  # Q-target
+        next_q_values = target_net(next_states_tensor).max(1, keepdim=True)[0]
+        target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))
 
-    # Compute loss (Mean Squared Error or Huber Loss)
-    loss = F.smooth_l1_loss(q_values, target_q_values)
-
-    # Optimize the policy network
+    # Compute loss and optimize
+    loss = F.smooth_l1_loss(current_q_values, target_q_values)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -235,72 +250,83 @@ def train_dqn():
 def main():
     global EPSILON
 
-    checkpoint_path = os.getenv("FILE_PATH")
-    if os.path.exists(checkpoint_path):
+    # Load checkpoints if they exist
+    if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path):
+        red_checkpoint = torch.load(red_checkpoint_path)
+        black_checkpoint = torch.load(black_checkpoint_path)
 
-        checkpoint = torch.load("checkpoint.pth")
+        red_policy_net.load_state_dict(red_checkpoint['policy_net'])
+        red_target_net.load_state_dict(red_checkpoint['target_net'])
+        red_optimizer.load_state_dict(red_checkpoint['optimizer'])
 
-        print("Saved keys in .pth file:", checkpoint.keys())
+        black_policy_net.load_state_dict(black_checkpoint['policy_net'])
+        black_target_net.load_state_dict(black_checkpoint['target_net'])
+        black_optimizer.load_state_dict(black_checkpoint['optimizer'])
 
-        policy_net.load_state_dict(checkpoint['policy_net'])
-        target_net.load_state_dict(checkpoint['target_net'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-
-        start_episode = checkpoint['episode']
-        print("starting from: ", start_episode)
+        start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
+        print(f"Starting from episode: {start_episode}")
 
     EPISODES = 100000
     start_time = time.time()
 
     try:
-        for episode in range(start_episode, EPISODES):
-
+        for episode in range(0, EPISODES):
             game.board = game.board_init
             state = encode_board_to_1d_board(game.board)
-            total_reward = 0
-            turn = 1
+            total_red_reward = 0
+            total_black_reward = 0
+            turn = 1  # Red starts
             
             count = 0
-            for t in range(200):
-
+            for t in range(200):  # Maximum 200 moves per game
+                current_policy_net = red_policy_net if turn == 1 else black_policy_net
+                piece_range = range(1, 17) if turn == 1 else range(-16, 0)
+                
+                # Get legal moves for all pieces
                 legal_piece_actions = []
-                for piece in range(1, 17) if turn == 1 else range(-16, 0):
+                for piece in piece_range:
                     legal_moves = board_piece.get_legal_moves(piece, game.board)
                     legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
-
                     for action in legal_action_indices:
                         legal_piece_actions.append((piece, action))
 
+                if not legal_piece_actions:  # No legal moves available
+                    break
 
+                # Epsilon-greedy action selection
                 if random.random() < EPSILON:
                     piece, action = random.choice(legal_piece_actions)
-
                 else:
                     state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
-                    q_values = policy_net(state_tensor).cpu().detach().numpy().squeeze()
+                    with torch.no_grad():
+                        q_values = current_policy_net(state_tensor).cpu().numpy().squeeze()
 
-                    # Find the best (piece, action) pair using Q-values
-                    best_q_value = -float('inf')
+                    # Find the best legal move
+                    best_q_value = float('-inf')
                     best_pair = None
                     for piece, action in legal_piece_actions:
                         if q_values[action] > best_q_value:
                             best_q_value = q_values[action]
                             best_pair = (piece, action)
+                    piece, action = best_pair
 
-                    piece, action = best_pair  # Select the best piece-action pair
+                # Take action and observe next state
+                next_state, reward, done = step(piece, action, turn)
 
-                # Take the action and observe the new state
-                next_state, reward, done = step(piece, action, turn) 
-                replay_buffer.append((state, action, reward, next_state, done))
+                # Store transition in appropriate replay buffer
+                if turn == 1:
+                    red_replay_buffer.append((state, action, reward, next_state, done))
+                    total_red_reward += reward
+                else:
+                    black_replay_buffer.append((state, action, reward, next_state, done))
+                    total_black_reward += reward
 
-                # Train the network
-                train_dqn()                         
+                # Train the current agent
+                train_dqn(turn)
 
+                # Update state and turn
                 state = next_state
-                total_reward += reward
-
-                turn = 1 - turn
-
+                turn = 1 - turn  # Switch turns
                 count = t
 
                 if done:
@@ -310,27 +336,36 @@ def main():
             if EPSILON > EPSILON_MIN:
                 EPSILON *= EPSILON_DECAY
 
-            # Update target network periodically
+            # Update target networks periodically
             if episode % TARGET_UPDATE == 0:
-                target_net.load_state_dict(policy_net.state_dict())
+                red_target_net.load_state_dict(red_policy_net.state_dict())
+                black_target_net.load_state_dict(black_policy_net.state_dict())
                 
-                checkpoint = {
-                    'policy_net': policy_net.state_dict(),
-                    'target_net': target_net.state_dict(),
-                    'optimizer': optimizer.state_dict(),
+                # Save checkpoints
+                red_checkpoint = {
+                    'policy_net': red_policy_net.state_dict(),
+                    'target_net': red_target_net.state_dict(),
+                    'optimizer': red_optimizer.state_dict(),
                     'episode': episode
                 }
                 
-                torch.save(checkpoint, "checkpoint.pth")
-                print(f"Checkpoint saved at episode {episode}")
+                black_checkpoint = {
+                    'policy_net': black_policy_net.state_dict(),
+                    'target_net': black_target_net.state_dict(),
+                    'optimizer': black_optimizer.state_dict(),
+                    'episode': episode
+                }
+                
+                torch.save(red_checkpoint, "red_checkpoint.pth")
+                torch.save(black_checkpoint, "black_checkpoint.pth")
+                print(f"Checkpoints saved at episode {episode}")
 
-
-            print(f"Episode {episode}, Total Reward: {total_reward}, Move count: {count}")
+            print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {count}")
 
     except KeyboardInterrupt:
-        end_time = time.time()  # Stop timer on Ctrl+C
+        end_time = time.time()
         running_time = end_time - start_time
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()

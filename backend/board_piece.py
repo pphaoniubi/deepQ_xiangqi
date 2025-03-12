@@ -1,3 +1,5 @@
+from utils import encode_1d_board_to_board
+
 def change_sides(side):
     if side == "Red":
         side = side.replace("Red", "Black")
@@ -48,26 +50,70 @@ def make_move(piece, new_x, new_y, board):
     return board
 
 
+def get_piece_value(piece):
+    """Return the relative value of each piece type."""
+    abs_piece = abs(piece)
+    if abs_piece == 5:  # General
+        return 1000
+    elif abs_piece in [1, 9]:  # Chariots
+        return 600
+    elif abs_piece in [10, 11]:  # Cannons
+        return 400
+    elif abs_piece in [2, 8]:  # Knights
+        return 300
+    elif abs_piece in [3, 7]:  # Elephants
+        return 200
+    elif abs_piece in [4, 6]:  # Advisors
+        return 200
+    else:  # Pawns
+        return 100
+
 def make_move_1d(piece, new_index, board_1d, turn):
-    if turn == 1:
+    if turn == 1:  # Red's turn
         reward_red = 0
         old_index = find_piece_1d(piece, board_1d)
-        if board_1d[new_index] < 0:
-            reward_red += 300
-
+        
+        # Reward for capturing pieces based on their value
+        if board_1d[new_index] < 0:  # Capturing black piece
+            reward_red += get_piece_value(board_1d[new_index])
+        
+        # Penalty for moving into a threatened square
         board_1d[old_index] = 0
         board_1d[new_index] = piece
+        if is_square_threatened(new_index, board_1d, turn):
+            reward_red -= 50
+        
+        # Reward for controlling center squares (middle 4x4 area)
+        if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
+            reward_red += 20
+            
+        # Reward for advancing pawns past the river
+        if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 <= 4:
+            reward_red += 50
 
         return board_1d, reward_red
     
-    elif turn == 0:
+    elif turn == 0:  # Black's turn
         reward_black = 0
         old_index = find_piece_1d(piece, board_1d)
-        if board_1d[new_index] > 0:
-            reward_black += 300
-
+        
+        # Reward for capturing pieces based on their value
+        if board_1d[new_index] > 0:  # Capturing red piece
+            reward_black += get_piece_value(board_1d[new_index])
+        
+        # Penalty for moving into a threatened square
         board_1d[old_index] = 0
         board_1d[new_index] = piece
+        if is_square_threatened(new_index, board_1d, turn):
+            reward_black -= 50
+        
+        # Reward for controlling center squares (middle 4x4 area)
+        if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
+            reward_black += 20
+            
+        # Reward for advancing pawns past the river
+        if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 >= 5:
+            reward_black += 50
 
         return board_1d, reward_black
 
@@ -277,3 +323,23 @@ def get_legal_moves(piece, board):
                 legal_moves.append((new_x, new_y))
 
         return legal_moves
+
+def is_square_threatened(index, board_1d, turn):
+    """Check if a square is threatened by opponent pieces."""
+    # Convert 1D index to 2D coordinates
+    row = index // 9
+    col = index % 9
+    
+    # Create 2D board for easier checking
+    board_2d = encode_1d_board_to_board(board_1d)
+    
+    # Get all opponent's pieces and their legal moves
+    opponent_pieces = range(-16, 0) if turn == 1 else range(1, 17)
+    
+    for piece in opponent_pieces:
+        legal_moves = get_legal_moves(piece, board_2d)
+        for move_x, move_y in legal_moves:
+            if move_x == col and move_y == row:
+                return True
+    
+    return False

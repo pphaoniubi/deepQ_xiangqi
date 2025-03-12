@@ -89,7 +89,7 @@ const Board = () => {
 
         const [piece, [destRow, destCol]] = response.data.AI_moves;
 
-        // ✅ Find the original position of the piece in the board
+        // Find the original position of the piece in the board
         let originalRow = -1;
         let originalCol = -1;
 
