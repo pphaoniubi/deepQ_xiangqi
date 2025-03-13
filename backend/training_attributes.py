@@ -143,6 +143,7 @@ def generate_moves(board_state, turn):
     else:
         checkpoint_path = os.getenv("BLACK_FILE_PATH")
         policy_net = black_policy_net
+    print(checkpoint_path)
     
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
@@ -266,11 +267,11 @@ def main():
         start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
         print(f"Starting from episode: {start_episode}")
 
-    EPISODES = 100000
+    EPISODES = 1000000
     start_time = time.time()
 
     try:
-        for episode in range(0, EPISODES):
+        for episode in range(start_episode, EPISODES):
             game.board = game.board_init
             state = encode_board_to_1d_board(game.board)
             total_red_reward = 0
@@ -368,4 +369,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-main()
+# main()
+
+# pip install numpy torch python-dotenv FastAPi pymysql uvicorn cryptography
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121

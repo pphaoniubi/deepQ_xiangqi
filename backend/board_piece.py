@@ -69,8 +69,9 @@ def get_piece_value(piece):
         return 100
 
 def make_move_1d(piece, new_index, board_1d, turn):
+    move_penality = -3
     if turn == 1:  # Red's turn
-        reward_red = 0
+        reward_red = move_penality
         old_index = find_piece_1d(piece, board_1d)
         
         # Reward for capturing pieces based on their value
@@ -94,7 +95,7 @@ def make_move_1d(piece, new_index, board_1d, turn):
         return board_1d, reward_red
     
     elif turn == 0:  # Black's turn
-        reward_black = 0
+        reward_black = move_penality
         old_index = find_piece_1d(piece, board_1d)
         
         # Reward for capturing pieces based on their value

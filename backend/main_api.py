@@ -94,6 +94,8 @@ def get_turn(request: BoardRequest):
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
 
-    AI_moves = training_attributes.generate_moves(request.board)
+    AI_moves = training_attributes.generate_moves(request.board, request.turn)
     
-    return {"AI_moves": AI_moves} 
+    return {"AI_moves": AI_moves}
+
+# uvicorn app:main_api --reload

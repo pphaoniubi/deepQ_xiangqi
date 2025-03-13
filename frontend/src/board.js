@@ -84,7 +84,8 @@ const Board = () => {
     try {
         // ✅ Get AI move from backend
         const response = await axios.post(`http://localhost:8000/get_ai_moves`, {
-            board: board 
+            board: board, 
+            turn: turn 
         }, { headers: { "Content-Type": "application/json" } });
 
         const [piece, [destRow, destCol]] = response.data.AI_moves;
