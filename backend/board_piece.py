@@ -54,33 +54,30 @@ def get_piece_value(piece):
     """Return the relative value of each piece type."""
     abs_piece = abs(piece)
     if abs_piece == 5:  # General
-        return 1000
+        return 1300
     elif abs_piece in [1, 9]:  # Chariots
-        return 600
+        return 700
     elif abs_piece in [10, 11]:  # Cannons
-        return 400
+        return 600
     elif abs_piece in [2, 8]:  # Knights
-        return 300
+        return 450
     elif abs_piece in [3, 7]:  # Elephants
-        return 200
+        return 350
     elif abs_piece in [4, 6]:  # Advisors
-        return 200
+        return 350
     else:  # Pawns
-        return 100
+        return 250
 
 def make_move_1d(piece, new_index, board_1d, turn, move_history):
-    move_penality = -3
     pattern_penalty = 0
     
-    # Check for various patterns if we have enough history
     if move_history and len(move_history) >= 2:
-        # Check for simple back-and-forth (A->B->A)
         if (len(move_history) >= 2 and
             move_history[-1][0] == piece and
             move_history[-2][0] == piece and
             move_history[-1][1] == new_index and
             move_history[-2][1] == find_piece_1d(piece, board_1d)):
-            pattern_penalty = -500  # Much stronger penalty
+            pattern_penalty = -400
             # print(f"Back-and-forth penalty applied on piece {piece}")
         
         # Check for A->B->A->B pattern
@@ -89,14 +86,14 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
               move_history[1][0] == move_history[3][0] and
               move_history[0][1] == move_history[2][1] and
               move_history[1][1] == move_history[3][1]):
-            pattern_penalty = -400
+            pattern_penalty = -300
             print(f"A->B->A->B pattern penalty applied on piece {piece}")
         
         # Check for same piece moving between same positions
         elif (len(move_history) >= 3 and
               move_history[-1][0] == move_history[-3][0] == piece and
               move_history[-1][1] == move_history[-3][1]):
-            pattern_penalty = -300
+            pattern_penalty = -200
             print(f"Same position penalty applied on piece {piece}")
     
     # Add progressive penalty based on how many times this piece has moved
@@ -105,7 +102,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         pattern_penalty -= 50 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
     
     if turn == 1:
-        reward_red = move_penality + pattern_penalty
+        reward_red = pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
         
         # Add positive rewards for forward progress
@@ -130,7 +127,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         return board_1d, reward_red
     
     elif turn == 0:
-        reward_black = move_penality + pattern_penalty
+        reward_black = pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
         
         # Add positive rewards for forward progress

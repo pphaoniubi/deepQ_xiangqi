@@ -80,7 +80,7 @@ if os.path.exists(black_checkpoint_path):
     print("Black model loaded successfully!")
 
 
-def map_legal_moves_to_actions(legal_moves, ACTION_SIZE):
+def map_legal_moves_to_actions(legal_moves):
     index = []
     for legal_move in legal_moves:
         index.append(legal_move[1] * 9 + legal_move[0])
@@ -169,7 +169,7 @@ def generate_moves(board_state, turn):
     legal_piece_actions = []
     for piece in piece_range:
         legal_moves = board_piece.get_legal_moves(piece, board_state)
-        legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
+        legal_action_indices = map_legal_moves_to_actions(legal_moves) 
         for action in legal_action_indices:
             legal_piece_actions.append((piece, action))
 
@@ -288,7 +288,7 @@ def main():
                 legal_piece_actions = []
                 for piece in piece_range:
                     legal_moves = board_piece.get_legal_moves(piece, game.board)
-                    legal_action_indices = map_legal_moves_to_actions(legal_moves, ACTION_SIZE) 
+                    legal_action_indices = map_legal_moves_to_actions(legal_moves) 
                     for action in legal_action_indices:
                         legal_piece_actions.append((piece, action))
 
