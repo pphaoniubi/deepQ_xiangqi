@@ -39,7 +39,6 @@ class DQN(nn.Module):
         x = F.relu(self.fc3(x))
         return self.fc4(x)
 
-# Hyperparameters
 STATE_SIZE = 90
 ACTION_SIZE = 90
 BATCH_SIZE = 256
@@ -50,26 +49,21 @@ EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
 TARGET_UPDATE = 500
 
-# Separate replay buffers for red and black
 red_replay_buffer = deque(maxlen=100000)
 black_replay_buffer = deque(maxlen=100000)
 
-# Initialize networks for both agents
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Red agent networks
 red_policy_net = DQN(ACTION_SIZE).to(device)
 red_target_net = DQN(ACTION_SIZE).to(device)
 red_target_net.load_state_dict(red_policy_net.state_dict())
 red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
 
-# Black agent networks
 black_policy_net = DQN(ACTION_SIZE).to(device)
 black_target_net = DQN(ACTION_SIZE).to(device)
 black_target_net.load_state_dict(black_policy_net.state_dict())
 black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
-# Load checkpoints if they exist
 red_checkpoint_path = os.getenv("RED_FILE_PATH")
 black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
 
@@ -98,45 +92,50 @@ def action_to_2d(action_index):
     return row, col
 
 
-def step(piece, new_index, turn):
+def step(piece, new_index, turn, move_history, count):
     if turn == 1:    
-        reward_red = 0
+        # Exponential penalty based on move count
+        if count > 30:  # Start penalty earlier
+            count_penalty = -10 * (2 ** ((count - 30) / 20))  # Exponential penalty
+        else: 
+            count_penalty = 0
 
-        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn)      # make move on 1D
+        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)      # make move on 1D
+        reward_red += count_penalty
 
         game.board = encode_1d_board_to_board(board_1d)
 
         winner = board_piece.is_winning(game.board)
         if winner == "Red wins":
-            reward_red += 2000
             done = True
-
+            reward_red += 2000  # Bigger reward for winning
         elif winner == "Game continues":
             done = False
 
         return encode_board_to_1d_board(game.board), reward_red, done
     
     elif turn == 0:    
-        reward_black = 0
+        # Exponential penalty based on move count
+        if count > 30:  # Start penalty earlier
+            count_penalty = -10 * (2 ** ((count - 30) / 20))  # Exponential penalty
+        else: 
+            count_penalty = 0
 
-        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn)      # make move on 1D
+        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)      # make move on 1D
+        reward_black += count_penalty
 
         game.board = encode_1d_board_to_board(board_1d)
 
         winner = board_piece.is_winning(game.board)
         if winner == "Black wins":
-            reward_black += 2000
             done = True
-
+            reward_black += 2000  # Bigger reward for winning
         elif winner == "Game continues":
             done = False
 
         return encode_board_to_1d_board(game.board), reward_black, done
 
 def generate_moves(board_state, turn):
-    """Generate moves for either red (turn=1) or black (turn=0) agent."""
-    
-    # Select the appropriate network based on turn
     if turn == 1:
         checkpoint_path = os.getenv("RED_FILE_PATH")
         policy_net = red_policy_net
@@ -276,14 +275,16 @@ def main():
             state = encode_board_to_1d_board(game.board)
             total_red_reward = 0
             total_black_reward = 0
-            turn = 1  # Red starts
-            
-            count = 0
-            for t in range(200):  # Maximum 200 moves per game
+            red_count = 0
+            black_count = 0
+            turn = 1
+            red_move_history = []
+            black_move_history = []
+            for t in range(200):
                 current_policy_net = red_policy_net if turn == 1 else black_policy_net
                 piece_range = range(1, 17) if turn == 1 else range(-16, 0)
-                
-                # Get legal moves for all pieces
+
+
                 legal_piece_actions = []
                 for piece in piece_range:
                     legal_moves = board_piece.get_legal_moves(piece, game.board)
@@ -291,10 +292,9 @@ def main():
                     for action in legal_action_indices:
                         legal_piece_actions.append((piece, action))
 
-                if not legal_piece_actions:  # No legal moves available
+                if not legal_piece_actions:
                     break
 
-                # Epsilon-greedy action selection
                 if random.random() < EPSILON:
                     piece, action = random.choice(legal_piece_actions)
                 else:
@@ -310,9 +310,26 @@ def main():
                             best_q_value = q_values[action]
                             best_pair = (piece, action)
                     piece, action = best_pair
+                
+                if turn == 1:
+                    red_count += 1
+                    if len(red_move_history) < 4:
+                        red_move_history.append((piece, action))
+                    elif len(red_move_history) == 4:
+                        red_move_history.pop(0)
+                        red_move_history.append((piece, action))
+                else: 
+                    black_count += 1
+                    if len(black_move_history) < 4:
+                        black_move_history.append((piece, action))
+                    elif len(black_move_history) == 4:
+                        black_move_history.pop(0)
+                        black_move_history.append((piece, action))
 
                 # Take action and observe next state
-                next_state, reward, done = step(piece, action, turn)
+                move_history = red_move_history if turn == 1 else black_move_history
+                count = red_count if turn == 1 else black_count
+                next_state, reward, done = step(piece, action, turn, move_history, count)
 
                 # Store transition in appropriate replay buffer
                 if turn == 1:
@@ -328,8 +345,7 @@ def main():
                 # Update state and turn
                 state = next_state
                 turn = 1 - turn  # Switch turns
-                count = t
-
+                game_count = t
                 if done:
                     break
 
@@ -361,7 +377,7 @@ def main():
                 torch.save(black_checkpoint, "black_checkpoint.pth")
                 print(f"Checkpoints saved at episode {episode}")
 
-            print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {count}")
+            print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {game_count}")
 
     except KeyboardInterrupt:
         end_time = time.time()
@@ -369,7 +385,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()
 
 # pip install numpy torch python-dotenv FastAPi pymysql uvicorn cryptography
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121

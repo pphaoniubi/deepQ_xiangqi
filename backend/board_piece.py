@@ -68,51 +68,87 @@ def get_piece_value(piece):
     else:  # Pawns
         return 100
 
-def make_move_1d(piece, new_index, board_1d, turn):
+def make_move_1d(piece, new_index, board_1d, turn, move_history):
     move_penality = -3
-    if turn == 1:  # Red's turn
-        reward_red = move_penality
+    pattern_penalty = 0
+    
+    # Check for various patterns if we have enough history
+    if move_history and len(move_history) >= 2:
+        # Check for simple back-and-forth (A->B->A)
+        if (len(move_history) >= 2 and
+            move_history[-1][0] == piece and
+            move_history[-2][0] == piece and
+            move_history[-1][1] == new_index and
+            move_history[-2][1] == find_piece_1d(piece, board_1d)):
+            pattern_penalty = -500  # Much stronger penalty
+            # print(f"Back-and-forth penalty applied on piece {piece}")
+        
+        # Check for A->B->A->B pattern
+        elif (len(move_history) >= 4 and
+              move_history[0][0] == move_history[2][0] == piece and
+              move_history[1][0] == move_history[3][0] and
+              move_history[0][1] == move_history[2][1] and
+              move_history[1][1] == move_history[3][1]):
+            pattern_penalty = -400
+            print(f"A->B->A->B pattern penalty applied on piece {piece}")
+        
+        # Check for same piece moving between same positions
+        elif (len(move_history) >= 3 and
+              move_history[-1][0] == move_history[-3][0] == piece and
+              move_history[-1][1] == move_history[-3][1]):
+            pattern_penalty = -300
+            print(f"Same position penalty applied on piece {piece}")
+    
+    # Add progressive penalty based on how many times this piece has moved
+    piece_move_count = sum(1 for move in move_history if move[0] == piece)
+    if piece_move_count > 2:
+        pattern_penalty -= 50 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
+    
+    if turn == 1:
+        reward_red = move_penality + pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
         
-        # Reward for capturing pieces based on their value
-        if board_1d[new_index] < 0:  # Capturing black piece
+        # Add positive rewards for forward progress
+        if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
+            if new_index // 9 < old_index // 9:  # Moving forward
+                reward_red += 30
+        
+        if board_1d[new_index] < 0:
             reward_red += get_piece_value(board_1d[new_index])
         
-        # Penalty for moving into a threatened square
         board_1d[old_index] = 0
         board_1d[new_index] = piece
         if is_square_threatened(new_index, board_1d, turn):
             reward_red -= 50
         
-        # Reward for controlling center squares (middle 4x4 area)
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
             reward_red += 20
             
-        # Reward for advancing pawns past the river
         if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 <= 4:
             reward_red += 50
 
         return board_1d, reward_red
     
-    elif turn == 0:  # Black's turn
-        reward_black = move_penality
+    elif turn == 0:
+        reward_black = move_penality + pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
         
-        # Reward for capturing pieces based on their value
-        if board_1d[new_index] > 0:  # Capturing red piece
+        # Add positive rewards for forward progress
+        if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
+            if new_index // 9 > old_index // 9:  # Moving forward (opposite direction for black)
+                reward_black += 30
+        
+        if board_1d[new_index] > 0:
             reward_black += get_piece_value(board_1d[new_index])
         
-        # Penalty for moving into a threatened square
         board_1d[old_index] = 0
         board_1d[new_index] = piece
         if is_square_threatened(new_index, board_1d, turn):
             reward_black -= 50
         
-        # Reward for controlling center squares (middle 4x4 area)
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
             reward_black += 20
             
-        # Reward for advancing pawns past the river
         if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 >= 5:
             reward_black += 50
 
