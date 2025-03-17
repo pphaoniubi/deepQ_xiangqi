@@ -54,19 +54,19 @@ def get_piece_value(piece):
     """Return the relative value of each piece type."""
     abs_piece = abs(piece)
     if abs_piece == 5:  # General
-        return 1300
+        return 2600
     elif abs_piece in [1, 9]:  # Chariots
-        return 700
+        return 1400
     elif abs_piece in [10, 11]:  # Cannons
-        return 600
+        return 1200
     elif abs_piece in [2, 8]:  # Knights
-        return 450
+        return 900
     elif abs_piece in [3, 7]:  # Elephants
-        return 350
+        return 700
     elif abs_piece in [4, 6]:  # Advisors
-        return 350
+        return 700
     else:  # Pawns
-        return 250
+        return 500
 
 def make_move_1d(piece, new_index, board_1d, turn, move_history):
     pattern_penalty = 0
@@ -95,11 +95,15 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
               move_history[-1][1] == move_history[-3][1]):
             pattern_penalty = -200
             print(f"Same position penalty applied on piece {piece}")
+
     
     # Add progressive penalty based on how many times this piece has moved
     piece_move_count = sum(1 for move in move_history if move[0] == piece)
     if piece_move_count > 2:
-        pattern_penalty -= 50 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
+        pattern_penalty -= 100 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
+
+    if piece_move_count > 5:
+        pattern_penalty -= 300 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
     
     if turn == 1:
         reward_red = pattern_penalty
@@ -108,7 +112,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         # Add positive rewards for forward progress
         if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
             if new_index // 9 < old_index // 9:  # Moving forward
-                reward_red += 30
+                reward_red += 100
         
         if board_1d[new_index] < 0:
             reward_red += get_piece_value(board_1d[new_index])
@@ -133,7 +137,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         # Add positive rewards for forward progress
         if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
             if new_index // 9 > old_index // 9:  # Moving forward (opposite direction for black)
-                reward_black += 30
+                reward_black += 100
         
         if board_1d[new_index] > 0:
             reward_black += get_piece_value(board_1d[new_index])

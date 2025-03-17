@@ -12,32 +12,67 @@ import board_piece
 import time
 from utils import encode_board_to_1d_board, encode_1d_board_to_board
 
-
 load_dotenv()
-
 
 class DQN(nn.Module):
     def __init__(self, action_size):
         super(DQN, self).__init__()
 
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        # Initial Convolutional Block
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
 
-        # Fully connected layers
-        self.fc1 = nn.Linear(64 * 10 * 9, 1024)
-        self.fc2 = nn.Linear(1024, 512)
-        self.fc3 = nn.Linear(512, 256)
-        self.fc4 = nn.Linear(256, action_size)
+        # Residual Blocks (3 Blocks)
+        self.res1 = self._residual_block(64)
+        self.res2 = self._residual_block(64)
+        self.res3 = self._residual_block(64)
+
+        # Policy Head (Predicts best moves)
+        self.policy_conv = nn.Conv2d(64, 2, kernel_size=1)
+        self.policy_bn = nn.BatchNorm2d(2)
+        self.policy_fc = nn.Linear(2 * 10 * 9, action_size)
+
+        # Value Head (Predicts game outcome)
+        self.value_conv = nn.Conv2d(64, 1, kernel_size=1)
+        self.value_bn = nn.BatchNorm2d(1)
+        self.value_fc1 = nn.Linear(10 * 9, 64)
+        self.value_fc2 = nn.Linear(64, 1)
+
+    def _residual_block(self, channels):
+        """Creates a simple Residual Block"""
+        return nn.Sequential(
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(channels)
+        )
 
     def forward(self, x):
-        x = x.view(-1, 1, 10, 9)
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        return self.fc4(x)
+        # print("Input shape before reshape:", x.shape)
+        batch_size = x.shape[0]
+        x = x.view(batch_size, 1, 10, 9)  # Reshape input
+
+        # Initial Conv Block
+        x = F.relu(self.bn1(self.conv1(x)))
+
+        # Residual Blocks
+        x = F.relu(self.res1(x) + x)
+        x = F.relu(self.res2(x) + x)
+        x = F.relu(self.res3(x) + x)
+
+        # Policy Head
+        policy = F.relu(self.policy_bn(self.policy_conv(x)))
+        policy = policy.view(policy.size(0), -1)
+        policy = F.softmax(self.policy_fc(policy), dim=1)  # Probability distribution over moves
+
+        # Value Head
+        value = F.relu(self.value_bn(self.value_conv(x)))
+        value = value.view(value.size(0), -1)
+        value = F.relu(self.value_fc1(value))
+        value = torch.tanh(self.value_fc2(value))  # Outputs between -1 and 1 (win/loss)
+
+        return policy, value
 
 STATE_SIZE = 90
 ACTION_SIZE = 90
@@ -48,6 +83,7 @@ EPSILON_MIN = 0.05
 EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
 TARGET_UPDATE = 500
+
 
 red_replay_buffer = deque(maxlen=100000)
 black_replay_buffer = deque(maxlen=100000)
@@ -94,8 +130,7 @@ def action_to_2d(action_index):
 
 def step(piece, new_index, turn, move_history, count):
     if turn == 1:    
-        # Exponential penalty based on move count
-        if count > 30:  # Start penalty earlier
+        if count > 30:
             count_penalty = -10 * (2 ** ((count - 30) / 20))  # Exponential penalty
         else: 
             count_penalty = 0
@@ -108,7 +143,7 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Red wins":
             done = True
-            reward_red += 2000  # Bigger reward for winning
+            reward_red += 5000
         elif winner == "Game continues":
             done = False
 
@@ -129,7 +164,7 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Black wins":
             done = True
-            reward_black += 2000  # Bigger reward for winning
+            reward_black += 5000  # Bigger reward for winning
         elif winner == "Game continues":
             done = False
 
@@ -162,7 +197,8 @@ def generate_moves(board_state, turn):
 
     # Get Q-values for all possible actions
     with torch.no_grad():
-        q_values = policy_net(state_tensor).cpu().numpy().squeeze()
+        policy_output, _ = policy_net(state_tensor)  # Unpack the tuple (policy, value)
+        q_values = policy_output.cpu().numpy().squeeze()
 
     # Generate list of all legal (piece, action) pairs
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
@@ -232,11 +268,13 @@ def train_dqn(turn):
     dones_tensor = torch.tensor(dones_np, dtype=torch.float32).to(device)
 
     # Compute current Q values
-    current_q_values = policy_net(states_tensor).gather(1, actions_tensor)
+    policy_output, _ = policy_net(states_tensor)  # Unpack the tuple (policy, value)
+    current_q_values = policy_output.gather(1, actions_tensor)
 
     # Compute next Q values
     with torch.no_grad():
-        next_q_values = target_net(next_states_tensor).max(1, keepdim=True)[0]
+        next_policy_output, _ = target_net(next_states_tensor)  # Unpack the tuple
+        next_q_values = next_policy_output.max(1, keepdim=True)[0]
         target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))
 
     # Compute loss and optimize
@@ -264,7 +302,10 @@ def main():
         black_optimizer.load_state_dict(black_checkpoint['optimizer'])
 
         start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
+
         print(f"Starting from episode: {start_episode}")
+    else: 
+        start_episode = 0
 
     EPISODES = 1000000
     start_time = time.time()
@@ -300,7 +341,8 @@ def main():
                 else:
                     state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
                     with torch.no_grad():
-                        q_values = current_policy_net(state_tensor).cpu().numpy().squeeze()
+                        policy_output, _ = current_policy_net(state_tensor)  # Unpack the tuple
+                        q_values = policy_output.cpu().numpy().squeeze() 
 
                     # Find the best legal move
                     best_q_value = float('-inf')
@@ -387,5 +429,5 @@ def main():
 
 main()
 
-# pip install numpy torch python-dotenv FastAPi pymysql uvicorn cryptography
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
+# python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128

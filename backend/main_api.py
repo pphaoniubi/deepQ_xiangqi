@@ -98,4 +98,4 @@ def get_ai_moves(request: BoardRequest):
     
     return {"AI_moves": AI_moves}
 
-# uvicorn app:main_api --reload
+# uvicorn main_api:app --reload

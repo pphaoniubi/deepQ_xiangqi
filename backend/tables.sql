@@ -1,3 +1,7 @@
+create database xiangqi_db;
+
+use xiangqi_db;
+
 CREATE TABLE games (
     game_id SERIAL PRIMARY KEY,
     username VARCHAR(20) NOT NULL,
