@@ -72,31 +72,14 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
     pattern_penalty = 0
     
     if move_history and len(move_history) >= 2:
-        if (len(move_history) >= 2 and
-            move_history[-1][0] == piece and
-            move_history[-2][0] == piece and
-            move_history[-1][1] == new_index and
-            move_history[-2][1] == find_piece_1d(piece, board_1d)):
-            pattern_penalty = -50
-            # print(f"Back-and-forth penalty applied on piece {piece}")
-        
-        # Check for A->B->A->B pattern
-        elif (len(move_history) >= 4 and
+        if (len(move_history) >= 4 and
               move_history[0][0] == move_history[2][0] == piece and
               move_history[1][0] == move_history[3][0] and
               move_history[0][1] == move_history[2][1] and
               move_history[1][1] == move_history[3][1]):
-            pattern_penalty = -150
-            print(f"A->B->A->B pattern penalty applied on piece {piece}")
-        
-        # Check for same piece moving between same positions
-        elif (len(move_history) >= 3 and
-              move_history[-1][0] == move_history[-3][0] == piece and
-              move_history[-1][1] == move_history[-3][1]):
             pattern_penalty = -200
-            print(f"Same position penalty applied on piece {piece}")
-
-    
+            # print(f"A->B->A->B pattern penalty applied on piece {piece}")
+        
     # Add progressive penalty based on how many times this piece has moved
     piece_move_count = sum(1 for move in move_history if move[0] == piece)
     if piece_move_count > 2:
@@ -109,32 +92,22 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         reward_red = pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
         
-        # Add positive rewards for forward progress
-        if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
-            if new_index // 9 < old_index // 9:  # Moving forward
-                reward_red += 100
-        
         if board_1d[new_index] < 0:
             reward_red += get_piece_value(board_1d[new_index])
         
         board_1d[old_index] = 0
         board_1d[new_index] = piece
         if is_square_threatened(new_index, board_1d, turn):
-            reward_red -= 50
+            reward_red -= 100
         
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
-            reward_red += 20
+            reward_red += 1
 
         return board_1d, reward_red
     
     elif turn == 0:
         reward_black = pattern_penalty
         old_index = find_piece_1d(piece, board_1d)
-        
-        # Add positive rewards for forward progress
-        if abs(piece) in [1, 9, 10, 11]:  # Major pieces (chariots and cannons)
-            if new_index // 9 > old_index // 9:  # Moving forward (opposite direction for black)
-                reward_black += 100
         
         if board_1d[new_index] > 0:
             reward_black += get_piece_value(board_1d[new_index])
@@ -145,7 +118,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
             reward_black -= 100
         
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
-            reward_black += 20
+            reward_black += 1
 
         return board_1d, reward_black
 
