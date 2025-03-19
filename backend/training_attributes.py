@@ -131,7 +131,7 @@ def action_to_2d(action_index):
 def step(piece, new_index, turn, move_history, count):
     if turn == 1:    
         if count > 30:
-            count_penalty = -10 * (2 ** ((count - 30) / 20))  # Exponential penalty
+            count_penalty = -20
         else: 
             count_penalty = 0
 
@@ -143,7 +143,7 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Red wins":
             done = True
-            reward_red += 5000
+            reward_red += 1000
         elif winner == "Game continues":
             done = False
 
@@ -151,8 +151,8 @@ def step(piece, new_index, turn, move_history, count):
     
     elif turn == 0:    
         # Exponential penalty based on move count
-        if count > 30:  # Start penalty earlier
-            count_penalty = -10 * (2 ** ((count - 30) / 20))  # Exponential penalty
+        if count > 30:
+            count_penalty = -20
         else: 
             count_penalty = 0
 
@@ -164,7 +164,7 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Black wins":
             done = True
-            reward_black += 5000  # Bigger reward for winning
+            reward_black += 1000  # Bigger reward for winning
         elif winner == "Game continues":
             done = False
 
@@ -431,3 +431,4 @@ main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+# uvicorn main_api:app --reload

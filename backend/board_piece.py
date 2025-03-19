@@ -54,19 +54,19 @@ def get_piece_value(piece):
     """Return the relative value of each piece type."""
     abs_piece = abs(piece)
     if abs_piece == 5:  # General
-        return 2600
+        return 1000
     elif abs_piece in [1, 9]:  # Chariots
-        return 1400
+        return 700
     elif abs_piece in [10, 11]:  # Cannons
-        return 1200
+        return 600
     elif abs_piece in [2, 8]:  # Knights
-        return 900
+        return 450
     elif abs_piece in [3, 7]:  # Elephants
-        return 700
+        return 350
     elif abs_piece in [4, 6]:  # Advisors
-        return 700
+        return 300
     else:  # Pawns
-        return 500
+        return 100
 
 def make_move_1d(piece, new_index, board_1d, turn, move_history):
     pattern_penalty = 0
@@ -77,7 +77,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
             move_history[-2][0] == piece and
             move_history[-1][1] == new_index and
             move_history[-2][1] == find_piece_1d(piece, board_1d)):
-            pattern_penalty = -400
+            pattern_penalty = -50
             # print(f"Back-and-forth penalty applied on piece {piece}")
         
         # Check for A->B->A->B pattern
@@ -86,7 +86,7 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
               move_history[1][0] == move_history[3][0] and
               move_history[0][1] == move_history[2][1] and
               move_history[1][1] == move_history[3][1]):
-            pattern_penalty = -300
+            pattern_penalty = -150
             print(f"A->B->A->B pattern penalty applied on piece {piece}")
         
         # Check for same piece moving between same positions
@@ -100,10 +100,10 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
     # Add progressive penalty based on how many times this piece has moved
     piece_move_count = sum(1 for move in move_history if move[0] == piece)
     if piece_move_count > 2:
-        pattern_penalty -= 100 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
+        pattern_penalty -= 10 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
 
     if piece_move_count > 5:
-        pattern_penalty -= 300 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
+        pattern_penalty -= 30 * (piece_move_count - 2)  # Progressive penalty for moving same piece too much
     
     if turn == 1:
         reward_red = pattern_penalty
@@ -124,9 +124,6 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
             reward_red += 20
-            
-        if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 <= 4:
-            reward_red += 50
 
         return board_1d, reward_red
     
@@ -145,13 +142,10 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         board_1d[old_index] = 0
         board_1d[new_index] = piece
         if is_square_threatened(new_index, board_1d, turn):
-            reward_black -= 50
+            reward_black -= 100
         
         if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
             reward_black += 20
-            
-        if abs(piece) in [12, 13, 14, 15, 16] and new_index // 9 >= 5:
-            reward_black += 50
 
         return board_1d, reward_black
 
