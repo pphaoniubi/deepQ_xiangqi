@@ -54,7 +54,7 @@ def get_piece_value(piece):
     """Return the relative value of each piece type."""
     abs_piece = abs(piece)
     if abs_piece == 5:  # General
-        return 1000
+        return 2000
     elif abs_piece in [1, 9]:  # Chariots
         return 700
     elif abs_piece in [10, 11]:  # Cannons
@@ -100,8 +100,11 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         if is_piece_threatened(new_index, board_1d, turn):
             reward_red -= 100
         
-        if is_check_mate(board_1d, turn):
+        if is_check(board_1d, turn):
             reward_red -= 200
+
+        if is_check_others(board_1d, turn):
+            reward_red += 500
 
         return board_1d, reward_red
     
@@ -117,8 +120,11 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         if is_piece_threatened(new_index, board_1d, turn):
             reward_black -= 100
 
-        if is_check_mate(board_1d, turn):
+        if is_check(board_1d, turn):
             reward_black -= 200
+
+        if is_check_others(board_1d, turn):
+            reward_black += 500
 
         return board_1d, reward_black
 
@@ -347,19 +353,44 @@ def is_piece_threatened(index, board_1d, turn):
     
     return False
 
-def is_check_mate(board_1d, turn):
+def is_check(board_1d, turn):
     general = 5 if turn == 1 else -5
-
     board_2d = encode_1d_board_to_board(board_1d)
+    general_position = find_piece(general, board_2d)
 
-    (col, row) = find_piece(general, board_2d)
+    if general_position:
+        row, col = general_position
+        print(turn, row, col)
+    else:
+        return False
 
     opponent_pieces = range(-16, 0) if turn == 1 else range(1, 17)
     
     for piece in opponent_pieces:
         legal_moves = get_legal_moves(piece, board_2d)
         for move_x, move_y in legal_moves:
-            if move_x == col and move_y == row:
+            if move_x == row and move_y == col:
+                return True
+    
+    return False
+
+def is_check_others(board_1d, turn):
+    general = -5 if turn == 1 else 5
+    board_2d = encode_1d_board_to_board(board_1d)
+    general_position = find_piece(general, board_2d)
+
+    if general_position:
+        row, col = general_position
+        print(turn, row, col)
+    else:
+        return False
+
+    opponent_pieces = range(1, 17) if turn == 1 else range(-16, 0)
+    
+    for piece in opponent_pieces:
+        legal_moves = get_legal_moves(piece, board_2d)
+        for move_x, move_y in legal_moves:
+            if move_x == row and move_y == col:
                 return True
     
     return False

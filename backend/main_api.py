@@ -91,7 +91,7 @@ def get_turn(request: BoardRequest):
     connection.close()
     return turn 
 
-
+ 
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
 
@@ -100,12 +100,11 @@ def get_ai_moves(request: BoardRequest):
     return {"AI_moves": AI_moves}
 
 
-@app.post("/is_checkmate")
-def get_ai_moves(request: BoardRequest):
-
+@app.post("/is_check")
+def is_check(request: BoardRequest):
     board_1d = utils.encode_board_to_1d_board(request.board)
-    is_checkmate = board_piece.is_check_mate(board_1d, request.turn)
-    
-    return {"is_checkmate": is_checkmate}
+    is_check = board_piece.is_check(board_1d, request.turn)
+
+    return {"is_check": is_check}
 
 # uvicorn main_api:app --reload

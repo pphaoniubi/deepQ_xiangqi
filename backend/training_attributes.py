@@ -143,7 +143,6 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Red wins":
             done = True
-            reward_red += 1000
         elif winner == "Game continues":
             done = False
 
@@ -158,7 +157,6 @@ def step(piece, new_index, turn, move_history, count):
         winner = board_piece.is_winning(game.board)
         if winner == "Black wins":
             done = True
-            reward_black += 1000
         elif winner == "Game continues":
             done = False
 
@@ -421,7 +419,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-main()
+# main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128

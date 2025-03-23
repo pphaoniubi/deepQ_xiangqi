@@ -17,11 +17,11 @@ const Board = () => {
   const [board, setBoard] = useState(Array(rows).fill().map(() => Array(cols).fill(0)));
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
-  const [turn, setTurn] = useState(null);
+  const [turn, setTurn] = useState(1);
   const [gameOver, setGameOver] = useState(false);
   const { username } = useContext(UserContext);
   const [playerMoved, setPlayerMoved] = useState(false);
-
+  const [isCheckmate, setIsCheckmate] = useState(false);
 
   const getBoard = async () => {
     if (!username || gameOver) return;
@@ -82,7 +82,6 @@ const Board = () => {
     if (turnResponse.data.turn === 1) return; // If it's not AI's turn, exit
 
     try {
-        // ✅ Get AI move from backend
         const response = await axios.post(`http://localhost:8000/get_ai_moves`, {
             board: board, 
             turn: turn 
@@ -228,9 +227,25 @@ const Board = () => {
     isWinner(newBoard);
   };
 
+
+  const is_check = async (board, turn) => {
+    const response_checkmate = await axios.post(`http://localhost:8000/is_checkmate`, {
+      board: board,
+      turn: turn
+    }, 
+    { headers: { "Content-Type": "application/json" }}
+  );
+  setIsCheckmate(response_checkmate.data.is_check)
+  }
+
   useEffect(() => {
     getBoard();
   }, [username, turn]);
+
+
+  useEffect(() => {
+    {is_check(board, turn)}
+  }, [board, turn]);
 
   useEffect(() => {
     console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
@@ -262,7 +277,6 @@ const Board = () => {
           />
         ))}
       </div>
-
       {Array.isArray(board) &&
         board.map((row, rowIndex) =>
 
