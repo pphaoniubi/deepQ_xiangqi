@@ -58,9 +58,9 @@ def get_piece_value(piece):
     elif abs_piece in [1, 9]:  # Chariots
         return 700
     elif abs_piece in [10, 11]:  # Cannons
+        return 650
+    elif abs_piece in [2, 8]:  # Horses
         return 600
-    elif abs_piece in [2, 8]:  # Knights
-        return 450
     elif abs_piece in [3, 7]:  # Elephants
         return 350
     elif abs_piece in [4, 6]:  # Advisors
@@ -97,11 +97,11 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         
         board_1d[old_index] = 0
         board_1d[new_index] = piece
-        if is_square_threatened(new_index, board_1d, turn):
+        if is_piece_threatened(new_index, board_1d, turn):
             reward_red -= 100
         
-        if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
-            reward_red += 1
+        if is_check_mate(board_1d, turn):
+            reward_red -= 200
 
         return board_1d, reward_red
     
@@ -114,11 +114,11 @@ def make_move_1d(piece, new_index, board_1d, turn, move_history):
         
         board_1d[old_index] = 0
         board_1d[new_index] = piece
-        if is_square_threatened(new_index, board_1d, turn):
+        if is_piece_threatened(new_index, board_1d, turn):
             reward_black -= 100
-        
-        if 3 <= new_index % 9 <= 5 and 3 <= new_index // 9 <= 6:
-            reward_black += 1
+
+        if is_check_mate(board_1d, turn):
+            reward_black -= 200
 
         return board_1d, reward_black
 
@@ -329,9 +329,7 @@ def get_legal_moves(piece, board):
 
         return legal_moves
 
-def is_square_threatened(index, board_1d, turn):
-    """Check if a square is threatened by opponent pieces."""
-    # Convert 1D index to 2D coordinates
+def is_piece_threatened(index, board_1d, turn):
     row = index // 9
     col = index % 9
     
@@ -339,6 +337,23 @@ def is_square_threatened(index, board_1d, turn):
     board_2d = encode_1d_board_to_board(board_1d)
     
     # Get all opponent's pieces and their legal moves
+    opponent_pieces = range(-16, 0) if turn == 1 else range(1, 17)
+    
+    for piece in opponent_pieces:
+        legal_moves = get_legal_moves(piece, board_2d)
+        for move_x, move_y in legal_moves:
+            if move_x == col and move_y == row:
+                return True
+    
+    return False
+
+def is_check_mate(board_1d, turn):
+    general = 5 if turn == 1 else -5
+
+    board_2d = encode_1d_board_to_board(board_1d)
+
+    (col, row) = find_piece(general, board_2d)
+
     opponent_pieces = range(-16, 0) if turn == 1 else range(1, 17)
     
     for piece in opponent_pieces:

@@ -6,6 +6,7 @@ from typing import List, Optional
 import json
 import board_piece
 import training_attributes
+import utils
 
 app = FastAPI()
 
@@ -97,5 +98,14 @@ def get_ai_moves(request: BoardRequest):
     AI_moves = training_attributes.generate_moves(request.board, request.turn)
     
     return {"AI_moves": AI_moves}
+
+
+@app.post("/is_checkmate")
+def get_ai_moves(request: BoardRequest):
+
+    board_1d = utils.encode_board_to_1d_board(request.board)
+    is_checkmate = board_piece.is_check_mate(board_1d, request.turn)
+    
+    return {"is_checkmate": is_checkmate}
 
 # uvicorn main_api:app --reload

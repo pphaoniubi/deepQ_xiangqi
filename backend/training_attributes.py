@@ -301,7 +301,7 @@ def main():
     else: 
         start_episode = 0
 
-    EPISODES = 1000000
+    EPISODES = 850001
     start_time = time.time()
 
     try:
@@ -421,7 +421,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
