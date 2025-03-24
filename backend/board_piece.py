@@ -360,7 +360,6 @@ def is_check(board_1d, turn):
 
     if general_position:
         row, col = general_position
-        print(turn, row, col)
     else:
         return False
 
@@ -381,7 +380,6 @@ def is_check_others(board_1d, turn):
 
     if general_position:
         row, col = general_position
-        print(turn, row, col)
     else:
         return False
 

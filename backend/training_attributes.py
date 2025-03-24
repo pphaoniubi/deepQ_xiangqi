@@ -419,7 +419,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
