@@ -299,7 +299,7 @@ def main():
     else: 
         start_episode = 0
 
-    EPISODES = 850001
+    EPISODES = 160001
     start_time = time.time()
 
     try:
@@ -313,7 +313,7 @@ def main():
             turn = 1
             red_move_history = []
             black_move_history = []
-            for t in range(200):
+            for t in range(160):
                 current_policy_net = red_policy_net if turn == 1 else black_policy_net
                 piece_range = range(1, 17) if turn == 1 else range(-16, 0)
 

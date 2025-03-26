@@ -229,7 +229,7 @@ const Board = () => {
 
 
   const is_check = async (board, turn) => {
-    const response_checkmate = await axios.post(`http://localhost:8000/is_checkmate`, {
+    const response_checkmate = await axios.post(`http://localhost:8000/is_check`, {
       board: board,
       turn: turn
     }, 
