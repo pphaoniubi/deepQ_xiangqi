@@ -10,6 +10,7 @@ from game_state import game
 import os
 import board_piece
 import time
+import piece_move
 from utils import encode_board_to_1d_board, encode_1d_board_to_board
 
 load_dotenv()
@@ -116,12 +117,6 @@ if os.path.exists(black_checkpoint_path):
     print("Black model loaded successfully!")
 
 
-def map_legal_moves_to_actions(legal_moves):
-    index = []
-    for legal_move in legal_moves:
-        index.append(legal_move[1] * 9 + legal_move[0])
-    return index
-
 def action_to_2d(action_index):
     row = action_index // 9
     col = action_index % 9 
@@ -196,8 +191,8 @@ def generate_moves(board_state, turn):
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
     legal_piece_actions = []
     for piece in piece_range:
-        legal_moves = board_piece.get_legal_moves(piece, board_state)
-        legal_action_indices = map_legal_moves_to_actions(legal_moves) 
+        legal_moves = piece_move.get_legal_moves(piece, board_state)
+        legal_action_indices = piece_move.map_legal_moves_to_actions(legal_moves) 
         for action in legal_action_indices:
             legal_piece_actions.append((piece, action))
 
@@ -315,15 +310,15 @@ def main():
             black_move_history = []
             for t in range(160):
                 current_policy_net = red_policy_net if turn == 1 else black_policy_net
-                piece_range = range(1, 17) if turn == 1 else range(-16, 0)
+                
+                board_np = np.array(game.board, dtype=np.int32)
+                legal_piece_actions = piece_move.generate_all_legal_actions(
+                        turn,
+                        board_np,
+                        piece_move.get_legal_moves,
+                        piece_move.map_legal_moves_to_actions
 
-
-                legal_piece_actions = []
-                for piece in piece_range:
-                    legal_moves = board_piece.get_legal_moves(piece, game.board)
-                    legal_action_indices = map_legal_moves_to_actions(legal_moves) 
-                    for action in legal_action_indices:
-                        legal_piece_actions.append((piece, action))
+                )
 
                 if not legal_piece_actions:
                     break
