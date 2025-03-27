@@ -7,6 +7,8 @@ import json
 import board_piece
 import training_attributes
 import utils
+import piece_move
+import numpy as np
 
 app = FastAPI()
 
@@ -52,7 +54,9 @@ def create_user(username: str):
 @app.post("/get_legal_moves")
 def get_legal_moves(request: BoardRequest):
     print(request.piece, request.board)
-    legal_moves = board_piece.get_legal_moves(request.piece, request.board)
+    
+    board_np = np.array(request.board, dtype=np.int32)
+    legal_moves = piece_move.get_legal_moves(request.piece, board_np)
 
     return {"legal_moves": legal_moves}
 

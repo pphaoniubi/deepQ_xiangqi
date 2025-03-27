@@ -225,3 +225,54 @@ def get_legal_moves(int piece, int[:, :] board):
                 legal_moves.append((new_x, new_y))
 
         return legal_moves
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, list move_history):
+    cdef int pattern_penalty = 0
+    cdef int piece_move_count = 0
+    cdef int old_index
+    cdef int reward = 0
+    cdef int i
+    cdef tuple move
+
+    if len(move_history) >= 4:
+        if (move_history[0][0] == move_history[2][0] == piece and
+            move_history[1][0] == move_history[3][0] and
+            move_history[0][1] == move_history[2][1] and
+            move_history[1][1] == move_history[3][1]):
+            pattern_penalty = -200
+
+    # Count how many times this piece has moved
+    for i in range(len(move_history)):
+        move = move_history[i]
+        if move[0] == piece:
+            piece_move_count += 1
+
+    if piece_move_count > 2:
+        pattern_penalty -= 10 * (piece_move_count - 2)
+    if piece_move_count > 5:
+        pattern_penalty -= 30 * (piece_move_count - 2)
+
+    reward = pattern_penalty
+    old_index = find_piece_1d(piece, board_1d)
+
+    if turn == 1:  # red
+        if board_1d[new_index] < 0:
+            reward += get_piece_value(board_1d[new_index])
+    else:  # black
+        if board_1d[new_index] > 0:
+            reward += get_piece_value(board_1d[new_index])
+
+    board_1d[old_index] = 0
+    board_1d[new_index] = piece
+
+    if is_piece_threatened(new_index, board_1d, turn):
+        reward -= 100
+    if is_check(board_1d, turn):
+        reward -= 200
+    if is_check_others(board_1d, turn):
+        reward += 500
+
+    return np.asarray(board_1d), reward

@@ -191,7 +191,8 @@ def generate_moves(board_state, turn):
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
     legal_piece_actions = []
     for piece in piece_range:
-        legal_moves = piece_move.get_legal_moves(piece, board_state)
+        board_np = np.array(board_state, dtype=np.int32)
+        legal_moves = piece_move.get_legal_moves(piece, board_np)
         legal_action_indices = piece_move.map_legal_moves_to_actions(legal_moves) 
         for action in legal_action_indices:
             legal_piece_actions.append((piece, action))
@@ -294,7 +295,7 @@ def main():
     else: 
         start_episode = 0
 
-    EPISODES = 160001
+    EPISODES = 200001
     start_time = time.time()
 
     try:
