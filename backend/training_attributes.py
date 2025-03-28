@@ -123,38 +123,18 @@ def action_to_2d(action_index):
 
 
 def step(piece, new_index, turn, move_history, count):
-    if count > 30:
-        count_penalty = -30
-    else: 
-        count_penalty = 0
+    count_penalty = -30 if count > 30 else 0
 
-    if turn == 1: 
-        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
-        reward_red += count_penalty
+    board_1d_input = piece_move.encode_board_to_1d_board(game.board)
+    board_1d, reward = piece_move.make_move_1d(piece, new_index, board_1d_input, turn, move_history)
+    reward += count_penalty
 
-        game.board = encode_1d_board_to_board(board_1d)
+    game.board = piece_move.encode_1d_board_to_board(board_1d)
 
-        winner = board_piece.is_winning(game.board)
-        if winner == "Red wins":
-            done = True
-        elif winner == "Game continues":
-            done = False
+    winner = board_piece.is_winning(game.board)
+    done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
 
-        return encode_board_to_1d_board(game.board), reward_red, done
-    
-    elif turn == 0:    
-        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
-        reward_black += count_penalty
-
-        game.board = encode_1d_board_to_board(board_1d)
-
-        winner = board_piece.is_winning(game.board)
-        if winner == "Black wins":
-            done = True
-        elif winner == "Game continues":
-            done = False
-
-        return encode_board_to_1d_board(game.board), reward_black, done
+    return piece_move.encode_board_to_1d_board(game.board), reward, done
 
 def generate_moves(board_state, turn):
     if turn == 1:

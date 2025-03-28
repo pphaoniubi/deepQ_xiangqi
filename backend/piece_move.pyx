@@ -230,7 +230,7 @@ def get_legal_moves(int piece, int[:, :] board):
 ctypedef np.int32_t INT32_t
 
 
-cpdef list encode_1d_board_to_board(list board_1d):
+cpdef list encode_1d_board_to_board(int[:] board_1d):
     cdef int i, j
     cdef list board_2d, row
 
@@ -309,7 +309,7 @@ cpdef int get_piece_value(int piece):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef bint is_piece_threatened(int index, list board_1d, int turn):
+cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
     cdef int row, col, piece, move_x, move_y
     cdef list board_2d, legal_moves
     cdef tuple move
@@ -342,7 +342,7 @@ cpdef bint is_piece_threatened(int index, list board_1d, int turn):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef bint is_check(list board_1d, int turn):
+cpdef bint is_check(int[:] board_1d, int turn):
     cdef int general
     cdef list board_2d
     cdef tuple general_position
@@ -384,7 +384,7 @@ cpdef bint is_check(list board_1d, int turn):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef bint is_check_others(list board_1d, int turn):
+cpdef bint is_check_others(int[:] board_1d, int turn):
     cdef int general
     cdef list board_2d
     cdef tuple general_position

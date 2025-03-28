@@ -2646,6 +2646,9 @@ static PyObject* __Pyx_PyInt_AddObjC(PyObject *op1, PyObject *op2, long intval, 
     (inplace ? PyNumber_InPlaceAdd(op1, op2) : PyNumber_Add(op1, op2))
 #endif
 
+/* BufferIndexError.proto */
+static void __Pyx_RaiseBufferIndexError(int axis);
+
 /* IsLittleEndian.proto */
 static CYTHON_INLINE int __Pyx_Is_Little_Endian(void);
 
@@ -2666,9 +2669,6 @@ static void __Pyx_ZeroBuffer(Py_buffer* buf);
 static CYTHON_INLINE void __Pyx_SafeReleaseBuffer(Py_buffer* info);
 static Py_ssize_t __Pyx_minusones[] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 static Py_ssize_t __Pyx_zeros[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-/* BufferIndexError.proto */
-static void __Pyx_RaiseBufferIndexError(int axis);
 
 #define __Pyx_BufPtrStrided1d(type, buf, i0, s0) (type)((char*)buf + i0 * s0)
 /* ModInt[long].proto */
@@ -3145,11 +3145,11 @@ static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
-
 /* CIntFromPy.proto */
 static CYTHON_INLINE npy_int32 __Pyx_PyInt_As_npy_int32(PyObject *);
+
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
@@ -3245,14 +3245,14 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *, int __pyx_skip_dispatch); /*proto*/
+static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(__Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
 static PyArrayObject *__pyx_f_10piece_move_encode_board_to_1d_board(PyObject *, int __pyx_skip_dispatch); /*proto*/
 static PyObject *__pyx_f_10piece_move_find_piece(int, PyObject *, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_f_10piece_move_find_piece_1d(int, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_f_10piece_move_get_piece_value(int, int __pyx_skip_dispatch); /*proto*/
-static int __pyx_f_10piece_move_is_piece_threatened(int, PyObject *, int, int __pyx_skip_dispatch); /*proto*/
-static int __pyx_f_10piece_move_is_check(PyObject *, int, int __pyx_skip_dispatch); /*proto*/
-static int __pyx_f_10piece_move_is_check_others(PyObject *, int, int __pyx_skip_dispatch); /*proto*/
+static int __pyx_f_10piece_move_is_piece_threatened(int, __Pyx_memviewslice, int, int __pyx_skip_dispatch); /*proto*/
+static int __pyx_f_10piece_move_is_check(__Pyx_memviewslice, int, int __pyx_skip_dispatch); /*proto*/
+static int __pyx_f_10piece_move_is_check_others(__Pyx_memviewslice, int, int __pyx_skip_dispatch); /*proto*/
 static int __pyx_array_allocate_buffer(struct __pyx_array_obj *); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -3532,14 +3532,14 @@ static PyObject *__pyx_pf_15View_dot_MemoryView___pyx_unpickle_Enum(CYTHON_UNUSE
 static PyObject *__pyx_pf_10piece_move_generate_all_legal_actions(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_turn, __Pyx_memviewslice __pyx_v_board, PyObject *__pyx_v_get_legal_moves_func, PyObject *__pyx_v_map_func); /* proto */
 static PyObject *__pyx_pf_10piece_move_2map_legal_moves_to_actions(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_legal_moves); /* proto */
 static PyObject *__pyx_pf_10piece_move_4get_legal_moves(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_piece, __Pyx_memviewslice __pyx_v_board); /* proto */
-static PyObject *__pyx_pf_10piece_move_6encode_1d_board_to_board(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d); /* proto */
+static PyObject *__pyx_pf_10piece_move_6encode_1d_board_to_board(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d); /* proto */
 static PyObject *__pyx_pf_10piece_move_8encode_board_to_1d_board(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board); /* proto */
 static PyObject *__pyx_pf_10piece_move_10find_piece(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_piece, PyObject *__pyx_v_board); /* proto */
 static PyObject *__pyx_pf_10piece_move_12find_piece_1d(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_piece, __Pyx_memviewslice __pyx_v_board_1d); /* proto */
 static PyObject *__pyx_pf_10piece_move_14get_piece_value(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_piece); /* proto */
-static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_index, PyObject *__pyx_v_board_1d, int __pyx_v_turn); /* proto */
-static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d, int __pyx_v_turn); /* proto */
-static PyObject *__pyx_pf_10piece_move_20is_check_others(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d, int __pyx_v_turn); /* proto */
+static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_index, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn); /* proto */
+static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn); /* proto */
+static PyObject *__pyx_pf_10piece_move_20is_check_others(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn); /* proto */
 static PyObject *__pyx_pf_10piece_move_22make_move_1d(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_piece, int __pyx_v_new_index, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn, PyObject *__pyx_v_move_history); /* proto */
 static PyObject *__pyx_tp_new_array(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -24675,7 +24675,7 @@ static PyObject *__pyx_pf_10piece_move_4get_legal_moves(CYTHON_UNUSED PyObject *
 /* "piece_move.pyx":233
  * 
  * 
- * cpdef list encode_1d_board_to_board(list board_1d):             # <<<<<<<<<<<<<<
+ * cpdef list encode_1d_board_to_board(int[:] board_1d):             # <<<<<<<<<<<<<<
  *     cdef int i, j
  *     cdef list board_2d, row
  */
@@ -24687,7 +24687,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v_board_1d, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(__Pyx_memviewslice __pyx_v_board_1d, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_i;
   int __pyx_v_j;
   PyObject *__pyx_v_board_2d = 0;
@@ -24699,8 +24699,9 @@ static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v
   PyObject *__pyx_t_3 = NULL;
   int __pyx_t_4;
   int __pyx_t_5;
-  long __pyx_t_6;
+  Py_ssize_t __pyx_t_6;
   int __pyx_t_7;
+  int __pyx_t_8;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -24713,11 +24714,7 @@ static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v
  *         raise ValueError("Invalid board size: Expected 90 elements")
  * 
  */
-  if (unlikely(__pyx_v_board_1d == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    __PYX_ERR(0, 237, __pyx_L1_error)
-  }
-  __pyx_t_1 = __Pyx_PyList_GET_SIZE(__pyx_v_board_1d); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 237, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_board_1d); 
   __pyx_t_2 = (__pyx_t_1 != 90);
   if (unlikely(__pyx_t_2)) {
 
@@ -24794,14 +24791,19 @@ static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v
  *         board_2d.append(row)
  * 
  */
-      if (unlikely(__pyx_v_board_1d == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+      __pyx_t_6 = ((__pyx_v_i * 9) + __pyx_v_j);
+      __pyx_t_7 = -1;
+      if (__pyx_t_6 < 0) {
+        __pyx_t_6 += __pyx_v_board_1d.shape[0];
+        if (unlikely(__pyx_t_6 < 0)) __pyx_t_7 = 0;
+      } else if (unlikely(__pyx_t_6 >= __pyx_v_board_1d.shape[0])) __pyx_t_7 = 0;
+      if (unlikely(__pyx_t_7 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_7);
         __PYX_ERR(0, 245, __pyx_L1_error)
       }
-      __pyx_t_6 = ((__pyx_v_i * 9) + __pyx_v_j);
-      __pyx_t_3 = __Pyx_GetItemInt_List(__pyx_v_board_1d, __pyx_t_6, long, 1, __Pyx_PyInt_From_long, 1, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 245, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyInt_From_int((*((int *) ( /* dim=0 */ (__pyx_v_board_1d.data + __pyx_t_6 * __pyx_v_board_1d.strides[0]) )))); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 245, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_7 = __Pyx_PyList_Append(__pyx_v_row, __pyx_t_3); if (unlikely(__pyx_t_7 == ((int)-1))) __PYX_ERR(0, 245, __pyx_L1_error)
+      __pyx_t_8 = __Pyx_PyList_Append(__pyx_v_row, __pyx_t_3); if (unlikely(__pyx_t_8 == ((int)-1))) __PYX_ERR(0, 245, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     }
 
@@ -24812,7 +24814,7 @@ static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v
  * 
  *     return board_2d
  */
-    __pyx_t_7 = __Pyx_PyList_Append(__pyx_v_board_2d, __pyx_v_row); if (unlikely(__pyx_t_7 == ((int)-1))) __PYX_ERR(0, 246, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyList_Append(__pyx_v_board_2d, __pyx_v_row); if (unlikely(__pyx_t_8 == ((int)-1))) __PYX_ERR(0, 246, __pyx_L1_error)
   }
 
   /* "piece_move.pyx":248
@@ -24830,7 +24832,7 @@ static PyObject *__pyx_f_10piece_move_encode_1d_board_to_board(PyObject *__pyx_v
   /* "piece_move.pyx":233
  * 
  * 
- * cpdef list encode_1d_board_to_board(list board_1d):             # <<<<<<<<<<<<<<
+ * cpdef list encode_1d_board_to_board(int[:] board_1d):             # <<<<<<<<<<<<<<
  *     cdef int i, j
  *     cdef list board_2d, row
  */
@@ -24864,7 +24866,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ) {
-  PyObject *__pyx_v_board_1d = 0;
+  __Pyx_memviewslice __pyx_v_board_1d = { 0, 0, { 0 }, { 0 }, { 0 } };
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
   #endif
@@ -24913,7 +24915,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
     } else {
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
     }
-    __pyx_v_board_1d = ((PyObject*)values[0]);
+    __pyx_v_board_1d = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_board_1d.memview)) __PYX_ERR(0, 233, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
@@ -24927,18 +24929,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   __Pyx_AddTraceback("piece_move.encode_1d_board_to_board", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_board_1d), (&PyList_Type), 1, "board_1d", 1))) __PYX_ERR(0, 233, __pyx_L1_error)
   __pyx_r = __pyx_pf_10piece_move_6encode_1d_board_to_board(__pyx_self, __pyx_v_board_1d);
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   {
     Py_ssize_t __pyx_temp;
     for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -24949,7 +24948,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10piece_move_6encode_1d_board_to_board(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d) {
+static PyObject *__pyx_pf_10piece_move_6encode_1d_board_to_board(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -24958,6 +24957,7 @@ static PyObject *__pyx_pf_10piece_move_6encode_1d_board_to_board(CYTHON_UNUSED P
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("encode_1d_board_to_board", 1);
   __Pyx_XDECREF(__pyx_r);
+  if (unlikely(!__pyx_v_board_1d.memview)) { __Pyx_RaiseUnboundLocalError("board_1d"); __PYX_ERR(0, 233, __pyx_L1_error) }
   __pyx_t_1 = __pyx_f_10piece_move_encode_1d_board_to_board(__pyx_v_board_1d, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 233, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
@@ -26309,7 +26309,7 @@ static PyObject *__pyx_pf_10piece_move_14get_piece_value(CYTHON_UNUSED PyObject 
 /* "piece_move.pyx":312
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_piece_threatened(int index, list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int row, col, piece, move_x, move_y
  *     cdef list board_2d, legal_moves
  */
@@ -26321,7 +26321,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static int __pyx_f_10piece_move_is_piece_threatened(int __pyx_v_index, PyObject *__pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static int __pyx_f_10piece_move_is_piece_threatened(int __pyx_v_index, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_row;
   int __pyx_v_col;
   int __pyx_v_piece;
@@ -26712,7 +26712,7 @@ static int __pyx_f_10piece_move_is_piece_threatened(int __pyx_v_index, PyObject 
   /* "piece_move.pyx":312
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_piece_threatened(int index, list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int row, col, piece, move_x, move_y
  *     cdef list board_2d, legal_moves
  */
@@ -26762,7 +26762,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ) {
   int __pyx_v_index;
-  PyObject *__pyx_v_board_1d = 0;
+  __Pyx_memviewslice __pyx_v_board_1d = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_turn;
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
@@ -26839,7 +26839,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
     }
     __pyx_v_index = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v_index == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 312, __pyx_L3_error)
-    __pyx_v_board_1d = ((PyObject*)values[1]);
+    __pyx_v_board_1d = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_board_1d.memview)) __PYX_ERR(0, 312, __pyx_L3_error)
     __pyx_v_turn = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_turn == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 312, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -26854,18 +26854,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   __Pyx_AddTraceback("piece_move.is_piece_threatened", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_board_1d), (&PyList_Type), 1, "board_1d", 1))) __PYX_ERR(0, 312, __pyx_L1_error)
   __pyx_r = __pyx_pf_10piece_move_16is_piece_threatened(__pyx_self, __pyx_v_index, __pyx_v_board_1d, __pyx_v_turn);
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   {
     Py_ssize_t __pyx_temp;
     for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -26876,7 +26873,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_index, PyObject *__pyx_v_board_1d, int __pyx_v_turn) {
+static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_index, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -26886,6 +26883,7 @@ static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObj
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("is_piece_threatened", 1);
   __Pyx_XDECREF(__pyx_r);
+  if (unlikely(!__pyx_v_board_1d.memview)) { __Pyx_RaiseUnboundLocalError("board_1d"); __PYX_ERR(0, 312, __pyx_L1_error) }
   __pyx_t_1 = __pyx_f_10piece_move_is_piece_threatened(__pyx_v_index, __pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 312, __pyx_L1_error)
   __pyx_t_2 = __Pyx_PyBool_FromLong(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 312, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -26907,7 +26905,7 @@ static PyObject *__pyx_pf_10piece_move_16is_piece_threatened(CYTHON_UNUSED PyObj
 /* "piece_move.pyx":345
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -26919,7 +26917,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static int __pyx_f_10piece_move_is_check(PyObject *__pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static int __pyx_f_10piece_move_is_check(__Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_general;
   PyObject *__pyx_v_board_2d = 0;
   PyObject *__pyx_v_general_position = 0;
@@ -27377,7 +27375,7 @@ static int __pyx_f_10piece_move_is_check(PyObject *__pyx_v_board_1d, int __pyx_v
   /* "piece_move.pyx":345
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -27427,7 +27425,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ) {
-  PyObject *__pyx_v_board_1d = 0;
+  __Pyx_memviewslice __pyx_v_board_1d = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_turn;
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
@@ -27490,7 +27488,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_board_1d = ((PyObject*)values[0]);
+    __pyx_v_board_1d = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_board_1d.memview)) __PYX_ERR(0, 345, __pyx_L3_error)
     __pyx_v_turn = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_turn == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 345, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -27505,18 +27503,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   __Pyx_AddTraceback("piece_move.is_check", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_board_1d), (&PyList_Type), 1, "board_1d", 1))) __PYX_ERR(0, 345, __pyx_L1_error)
   __pyx_r = __pyx_pf_10piece_move_18is_check(__pyx_self, __pyx_v_board_1d, __pyx_v_turn);
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   {
     Py_ssize_t __pyx_temp;
     for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -27527,7 +27522,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d, int __pyx_v_turn) {
+static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -27537,6 +27532,7 @@ static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("is_check", 1);
   __Pyx_XDECREF(__pyx_r);
+  if (unlikely(!__pyx_v_board_1d.memview)) { __Pyx_RaiseUnboundLocalError("board_1d"); __PYX_ERR(0, 345, __pyx_L1_error) }
   __pyx_t_1 = __pyx_f_10piece_move_is_check(__pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 345, __pyx_L1_error)
   __pyx_t_2 = __Pyx_PyBool_FromLong(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 345, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -27558,7 +27554,7 @@ static PyObject *__pyx_pf_10piece_move_18is_check(CYTHON_UNUSED PyObject *__pyx_
 /* "piece_move.pyx":387
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check_others(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check_others(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -27570,7 +27566,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static int __pyx_f_10piece_move_is_check_others(PyObject *__pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static int __pyx_f_10piece_move_is_check_others(__Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_general;
   PyObject *__pyx_v_board_2d = 0;
   PyObject *__pyx_v_general_position = 0;
@@ -27698,7 +27694,7 @@ static int __pyx_f_10piece_move_is_check_others(PyObject *__pyx_v_board_1d, int 
   /* "piece_move.pyx":387
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check_others(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check_others(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -27731,7 +27727,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ) {
-  PyObject *__pyx_v_board_1d = 0;
+  __Pyx_memviewslice __pyx_v_board_1d = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_turn;
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
@@ -27794,7 +27790,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_board_1d = ((PyObject*)values[0]);
+    __pyx_v_board_1d = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_board_1d.memview)) __PYX_ERR(0, 387, __pyx_L3_error)
     __pyx_v_turn = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_turn == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 387, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -27809,18 +27805,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
     }
   }
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   __Pyx_AddTraceback("piece_move.is_check_others", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_board_1d), (&PyList_Type), 1, "board_1d", 1))) __PYX_ERR(0, 387, __pyx_L1_error)
   __pyx_r = __pyx_pf_10piece_move_20is_check_others(__pyx_self, __pyx_v_board_1d, __pyx_v_turn);
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
+  __PYX_XCLEAR_MEMVIEW(&__pyx_v_board_1d, 1);
   {
     Py_ssize_t __pyx_temp;
     for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -27831,7 +27824,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10piece_move_20is_check_others(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_board_1d, int __pyx_v_turn) {
+static PyObject *__pyx_pf_10piece_move_20is_check_others(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_board_1d, int __pyx_v_turn) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -27841,6 +27834,7 @@ static PyObject *__pyx_pf_10piece_move_20is_check_others(CYTHON_UNUSED PyObject 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("is_check_others", 1);
   __Pyx_XDECREF(__pyx_r);
+  if (unlikely(!__pyx_v_board_1d.memview)) { __Pyx_RaiseUnboundLocalError("board_1d"); __PYX_ERR(0, 387, __pyx_L1_error) }
   __pyx_t_1 = __pyx_f_10piece_move_is_check_others(__pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 387, __pyx_L1_error)
   __pyx_t_2 = __Pyx_PyBool_FromLong(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 387, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -28515,11 +28509,7 @@ static PyObject *__pyx_pf_10piece_move_22make_move_1d(CYTHON_UNUSED PyObject *__
  *         reward -= 100
  *     if is_check(board_1d, turn):
  */
-  __pyx_t_4 = __pyx_memoryview_fromslice(__pyx_v_board_1d, 1, (PyObject *(*)(char *)) __pyx_memview_get_int, (int (*)(char *, PyObject *)) __pyx_memview_set_int, 0);; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 446, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  if (!(likely(PyList_CheckExact(__pyx_t_4)) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_4))) __PYX_ERR(0, 446, __pyx_L1_error)
-  __pyx_t_2 = __pyx_f_10piece_move_is_piece_threatened(__pyx_v_new_index, ((PyObject*)__pyx_t_4), __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 446, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_2 = __pyx_f_10piece_move_is_piece_threatened(__pyx_v_new_index, __pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 446, __pyx_L1_error)
   if (__pyx_t_2) {
 
     /* "piece_move.pyx":447
@@ -28547,11 +28537,7 @@ static PyObject *__pyx_pf_10piece_move_22make_move_1d(CYTHON_UNUSED PyObject *__
  *         reward -= 200
  *     if is_check_others(board_1d, turn):
  */
-  __pyx_t_4 = __pyx_memoryview_fromslice(__pyx_v_board_1d, 1, (PyObject *(*)(char *)) __pyx_memview_get_int, (int (*)(char *, PyObject *)) __pyx_memview_set_int, 0);; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 448, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  if (!(likely(PyList_CheckExact(__pyx_t_4)) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_4))) __PYX_ERR(0, 448, __pyx_L1_error)
-  __pyx_t_2 = __pyx_f_10piece_move_is_check(((PyObject*)__pyx_t_4), __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 448, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_2 = __pyx_f_10piece_move_is_check(__pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 448, __pyx_L1_error)
   if (__pyx_t_2) {
 
     /* "piece_move.pyx":449
@@ -28579,11 +28565,7 @@ static PyObject *__pyx_pf_10piece_move_22make_move_1d(CYTHON_UNUSED PyObject *__
  *         reward += 500
  * 
  */
-  __pyx_t_4 = __pyx_memoryview_fromslice(__pyx_v_board_1d, 1, (PyObject *(*)(char *)) __pyx_memview_get_int, (int (*)(char *, PyObject *)) __pyx_memview_set_int, 0);; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 450, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  if (!(likely(PyList_CheckExact(__pyx_t_4)) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_4))) __PYX_ERR(0, 450, __pyx_L1_error)
-  __pyx_t_2 = __pyx_f_10piece_move_is_check_others(((PyObject*)__pyx_t_4), __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 450, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_2 = __pyx_f_10piece_move_is_check_others(__pyx_v_board_1d, __pyx_v_turn, 0); if (unlikely(__pyx_t_2 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 450, __pyx_L1_error)
   if (__pyx_t_2) {
 
     /* "piece_move.pyx":451
@@ -30181,7 +30163,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "piece_move.pyx":233
  * 
  * 
- * cpdef list encode_1d_board_to_board(list board_1d):             # <<<<<<<<<<<<<<
+ * cpdef list encode_1d_board_to_board(int[:] board_1d):             # <<<<<<<<<<<<<<
  *     cdef int i, j
  *     cdef list board_2d, row
  */
@@ -30241,7 +30223,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "piece_move.pyx":312
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_piece_threatened(int index, list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int row, col, piece, move_x, move_y
  *     cdef list board_2d, legal_moves
  */
@@ -30253,7 +30235,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "piece_move.pyx":345
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -30265,7 +30247,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "piece_move.pyx":387
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check_others(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check_others(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -31449,7 +31431,7 @@ if (!__Pyx_RefNanny) {
   /* "piece_move.pyx":233
  * 
  * 
- * cpdef list encode_1d_board_to_board(list board_1d):             # <<<<<<<<<<<<<<
+ * cpdef list encode_1d_board_to_board(int[:] board_1d):             # <<<<<<<<<<<<<<
  *     cdef int i, j
  *     cdef list board_2d, row
  */
@@ -31509,7 +31491,7 @@ if (!__Pyx_RefNanny) {
   /* "piece_move.pyx":312
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_piece_threatened(int index, list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int row, col, piece, move_x, move_y
  *     cdef list board_2d, legal_moves
  */
@@ -31521,7 +31503,7 @@ if (!__Pyx_RefNanny) {
   /* "piece_move.pyx":345
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -31533,7 +31515,7 @@ if (!__Pyx_RefNanny) {
   /* "piece_move.pyx":387
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cpdef bint is_check_others(list board_1d, int turn):             # <<<<<<<<<<<<<<
+ * cpdef bint is_check_others(int[:] board_1d, int turn):             # <<<<<<<<<<<<<<
  *     cdef int general
  *     cdef list board_2d
  */
@@ -34302,6 +34284,12 @@ static PyObject* __Pyx_PyInt_AddObjC(PyObject *op1, PyObject *op2, long intval, 
 }
 #endif
 
+/* BufferIndexError */
+static void __Pyx_RaiseBufferIndexError(int axis) {
+  PyErr_Format(PyExc_IndexError,
+     "Out of bounds on buffer access (axis %d)", axis);
+}
+
 /* IsLittleEndian */
 static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
 {
@@ -34868,12 +34856,6 @@ static int __Pyx__GetBufferAndValidate(
 fail:;
   __Pyx_SafeReleaseBuffer(buf);
   return -1;
-}
-
-/* BufferIndexError */
-  static void __Pyx_RaiseBufferIndexError(int axis) {
-  PyErr_Format(PyExc_IndexError,
-     "Out of bounds on buffer access (axis %d)", axis);
 }
 
 /* ModInt[long] */
@@ -38467,77 +38449,6 @@ raise_neg_overflow:
     }
 }
 
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const long neg_one = (long) -1, const_zero = (long) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        unsigned char *bytes = (unsigned char *)&value;
-#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
-        if (is_unsigned) {
-            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
-        } else {
-            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
-        }
-#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-#else
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
-        if (!py_bytes) goto limited_bad;
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
-        if (!is_unsigned) {
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
-        }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
-        limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
-        return result;
-#endif
-    }
-}
-
 /* CIntFromPy */
   static CYTHON_INLINE npy_int32 __Pyx_PyInt_As_npy_int32(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -38803,6 +38714,77 @@ raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
         "can't convert negative value to npy_int32");
     return (npy_int32) -1;
+}
+
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const long neg_one = (long) -1, const_zero = (long) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        unsigned char *bytes = (unsigned char *)&value;
+#if !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX >= 0x030d00A4
+        if (is_unsigned) {
+            return PyLong_FromUnsignedNativeBytes(bytes, sizeof(value), -1);
+        } else {
+            return PyLong_FromNativeBytes(bytes, sizeof(value), -1);
+        }
+#elif !CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030d0000
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        return _PyLong_FromByteArray(bytes, sizeof(long),
+                                     little, !is_unsigned);
+#else
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        PyObject *from_bytes, *result = NULL;
+        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
+        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
+        if (!from_bytes) return NULL;
+        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof(long));
+        if (!py_bytes) goto limited_bad;
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
+        if (!arg_tuple) goto limited_bad;
+        if (!is_unsigned) {
+            kwds = PyDict_New();
+            if (!kwds) goto limited_bad;
+            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+        }
+        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        limited_bad:
+        Py_XDECREF(kwds);
+        Py_XDECREF(arg_tuple);
+        Py_XDECREF(order_str);
+        Py_XDECREF(py_bytes);
+        Py_XDECREF(from_bytes);
+        return result;
+#endif
+    }
 }
 
 /* CIntFromPy */
