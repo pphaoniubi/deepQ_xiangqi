@@ -122,6 +122,39 @@ def action_to_2d(action_index):
     return row, col
 
 
+def step(piece, new_index, turn, move_history, count):
+    if count > 30:
+        count_penalty = -30
+    else: 
+        count_penalty = 0
+
+    if turn == 1: 
+        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
+        reward_red += count_penalty
+
+        game.board = encode_1d_board_to_board(board_1d)
+
+        winner = board_piece.is_winning(game.board)
+        if winner == "Red wins":
+            done = True
+        elif winner == "Game continues":
+            done = False
+
+        return encode_board_to_1d_board(game.board), reward_red, done
+    
+    elif turn == 0:    
+        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
+        reward_black += count_penalty
+
+        game.board = encode_1d_board_to_board(board_1d)
+
+        winner = board_piece.is_winning(game.board)
+        if winner == "Black wins":
+            done = True
+        elif winner == "Game continues":
+            done = False
+
+        return encode_board_to_1d_board(game.board), reward_black, done
 
 def generate_moves(board_state, turn):
     if turn == 1:
