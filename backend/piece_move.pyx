@@ -227,6 +227,181 @@ def get_legal_moves(int piece, int[:, :] board):
         return legal_moves
 
 
+ctypedef np.int32_t INT32_t
+
+
+cpdef list encode_1d_board_to_board(list board_1d):
+    cdef int i, j
+    cdef list board_2d, row
+
+    if len(board_1d) != 90:
+        raise ValueError("Invalid board size: Expected 90 elements")
+
+    board_2d = []
+
+    for i in range(10):  # 10 rows
+        row = []
+        for j in range(9):  # 9 columns
+            row.append(board_1d[i * 9 + j])
+        board_2d.append(row)
+
+    return board_2d
+
+
+cpdef np.ndarray[INT32_t, ndim=1] encode_board_to_1d_board(list board):
+    cdef int height = len(board)
+    cdef int width = len(board[0])  # assumes all rows are equal
+    cdef int i, j, index
+    cdef np.ndarray[INT32_t, ndim=1] board_flat = np.empty(height * width, dtype=np.int32)
+
+    index = 0
+    for i in range(height):
+        for j in range(width):
+            board_flat[index] = board[i][j]
+            index += 1
+
+    return board_flat
+
+cpdef object find_piece(int piece, list board):
+    cdef int j, i
+    cdef int init_x, init_y
+    cdef int height = len(board)
+    cdef int width
+
+    for j in range(height):
+        width = len(board[j])
+        for i in range(width):
+            if board[j][i] == piece:
+                init_x = i
+                init_y = j
+                return (init_x, init_y)
+
+    return None
+
+
+cpdef int find_piece_1d(int piece, int[:] board_1d):
+    cdef int i
+    for i in range(board_1d.shape[0]):
+        if board_1d[i] == piece:
+            return i
+    return -1
+
+
+cpdef int get_piece_value(int piece):
+    """Return the relative value of each piece type."""
+    cdef int abs_piece = abs(piece)
+
+    if abs_piece == 5:  # General
+        return 2000
+    elif abs_piece == 1 or abs_piece == 9:  # Chariots
+        return 700
+    elif abs_piece == 10 or abs_piece == 11:  # Cannons
+        return 650
+    elif abs_piece == 2 or abs_piece == 8:  # Horses
+        return 600
+    elif abs_piece == 3 or abs_piece == 7:  # Elephants
+        return 350
+    elif abs_piece == 4 or abs_piece == 6:  # Advisors
+        return 300
+    else:  # Pawns
+        return 100
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef bint is_piece_threatened(int index, list board_1d, int turn):
+    cdef int row, col, piece, move_x, move_y
+    cdef list board_2d, legal_moves
+    cdef tuple move
+
+    row = index // 9
+    col = index % 9
+
+    # Create 2D board for easier checking
+    board_2d = encode_1d_board_to_board(board_1d)
+
+    # Get opponent pieces
+    if turn == 1:
+        opponent_pieces = range(-16, 0)
+    else:
+        opponent_pieces = range(1, 17)
+
+    # Convert to NumPy array (optional: memoryview optimization later)
+    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
+
+    for piece in opponent_pieces:
+        legal_moves = get_legal_moves(piece, board_np)
+        for move in legal_moves:
+            move_x = move[0]
+            move_y = move[1]
+            if move_x == col and move_y == row:
+                return True
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef bint is_check(list board_1d, int turn):
+    cdef int general
+    cdef list board_2d
+    cdef tuple general_position
+    cdef int row, col
+    cdef int piece
+    cdef int move_x, move_y
+    cdef list legal_moves
+
+    # Create board
+    general = 5 if turn == 1 else -5
+    board_2d = encode_1d_board_to_board(board_1d)
+    general_position = find_piece(general, board_2d)
+
+    if not general_position:
+        return False
+
+    row = general_position[0]
+    col = general_position[1]
+
+    # Define opponent pieces
+    if turn == 1:
+        opponent_pieces = range(-16, 0)
+    else:
+        opponent_pieces = range(1, 17)
+
+    # Convert board to NumPy array and memoryview
+    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
+
+    for piece in opponent_pieces:
+        legal_moves = get_legal_moves(piece, board_np)
+        for move in legal_moves:
+            move_x = move[0]
+            move_y = move[1]
+            if move_x == row and move_y == col:
+                return True
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef bint is_check_others(list board_1d, int turn):
+    cdef int general
+    cdef list board_2d
+    cdef tuple general_position
+    cdef int row, col
+
+    general = -5 if turn == 1 else 5
+    board_2d = encode_1d_board_to_board(board_1d)
+    general_position = find_piece(general, board_2d)
+
+    if general_position:
+        row = general_position[0]
+        col = general_position[1]
+        return True
+    else:
+        return False
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, list move_history):

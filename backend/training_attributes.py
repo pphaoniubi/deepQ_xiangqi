@@ -11,7 +11,6 @@ import os
 import board_piece
 import time
 import piece_move
-from utils import encode_board_to_1d_board, encode_1d_board_to_board
 
 load_dotenv()
 
@@ -123,39 +122,6 @@ def action_to_2d(action_index):
     return row, col
 
 
-def step(piece, new_index, turn, move_history, count):
-    if count > 30:
-        count_penalty = -30
-    else: 
-        count_penalty = 0
-
-    if turn == 1: 
-        board_1d, reward_red = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
-        reward_red += count_penalty
-
-        game.board = encode_1d_board_to_board(board_1d)
-
-        winner = board_piece.is_winning(game.board)
-        if winner == "Red wins":
-            done = True
-        elif winner == "Game continues":
-            done = False
-
-        return encode_board_to_1d_board(game.board), reward_red, done
-    
-    elif turn == 0:    
-        board_1d, reward_black = board_piece.make_move_1d(piece, new_index, encode_board_to_1d_board(game.board), turn, move_history=move_history)
-        reward_black += count_penalty
-
-        game.board = encode_1d_board_to_board(board_1d)
-
-        winner = board_piece.is_winning(game.board)
-        if winner == "Black wins":
-            done = True
-        elif winner == "Game continues":
-            done = False
-
-        return encode_board_to_1d_board(game.board), reward_black, done
 
 def generate_moves(board_state, turn):
     if turn == 1:
@@ -301,7 +267,7 @@ def main():
     try:
         for episode in range(start_episode, EPISODES):
             game.board = game.board_init
-            state = encode_board_to_1d_board(game.board)
+            state = piece_move.encode_board_to_1d_board(game.board)
             total_red_reward = 0
             total_black_reward = 0
             red_count = 0
