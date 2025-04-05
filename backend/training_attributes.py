@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from dotenv import load_dotenv
 from game_state import game
 import os
-import board_piece
 import time
 import piece_move
 
@@ -120,21 +119,6 @@ def action_to_2d(action_index):
     row = action_index // 9
     col = action_index % 9 
     return row, col
-
-
-def step(piece, new_index, turn, move_history, count):
-    count_penalty = -30 if count > 30 else 0
-
-    board_1d_input = piece_move.encode_board_to_1d_board(game.board)
-    board_1d, reward = piece_move.make_move_1d(piece, new_index, board_1d_input, turn, move_history)
-    reward += count_penalty
-
-    game.board = piece_move.encode_1d_board_to_board(board_1d)
-
-    winner = board_piece.is_winning(game.board)
-    done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
-
-    return piece_move.encode_board_to_1d_board(game.board), reward, done
 
 def generate_moves(board_state, turn):
     if turn == 1:
@@ -338,7 +322,7 @@ def main():
                 # Take action and observe next state
                 move_history = red_move_history if turn == 1 else black_move_history
                 count = red_count if turn == 1 else black_count
-                next_state, reward, done = step(piece, action, turn, move_history, count)
+                next_state, reward, done = piece_move.step(piece, action, turn, move_history, count)
 
                 # Store transition in appropriate replay buffer
                 if turn == 1:

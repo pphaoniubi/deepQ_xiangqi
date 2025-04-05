@@ -6,7 +6,6 @@ from typing import List, Optional
 import json
 import board_piece
 import training_attributes
-import utils
 import piece_move
 import numpy as np
 

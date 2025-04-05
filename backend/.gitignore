@@ -2,3 +2,5 @@ __pycache__/
 red_checkpoint.pth
 black_checkpoint.pth
 .env
+build/
+piece_move.c

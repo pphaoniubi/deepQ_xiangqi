@@ -2,6 +2,7 @@
 
 # Optional Cython optimizations
 from libc.stdlib cimport malloc, free
+from game_state import game
 cimport cython
 import numpy as np
 cimport numpy as np
@@ -23,8 +24,19 @@ def generate_all_legal_actions(int turn, int[:, :] board, object get_legal_moves
 
         for action in legal_action_indices:
             result.append((piece, action))
-
+    
     return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef str is_winning(object board):
+    if find_piece(-5, board) is None:
+        return "Red wins"
+    elif find_piece(5, board) is None:
+        return "Black wins"
+    else:
+        return "Game continues"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -288,7 +300,6 @@ cpdef int find_piece_1d(int piece, int[:] board_1d):
 
 
 cpdef int get_piece_value(int piece):
-    """Return the relative value of each piece type."""
     cdef int abs_piece = abs(piece)
 
     if abs_piece == 5:  # General
@@ -401,14 +412,30 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
     else:
         return False
 
+def step(int piece, int new_index, int turn, list move_history, count):
+    cdef np.ndarray board_1d_input
+    cdef np.ndarray board_1d
+    cdef double reward
+    cdef bint done
+    cdef object winner
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, list move_history):
-    cdef int pattern_penalty = 0
+    board_1d_input = encode_board_to_1d_board(game.board)
+    board_1d, reward = make_move_1d(piece, new_index, board_1d_input, turn, count, move_history)
+
+    game.board = encode_1d_board_to_board(board_1d)
+
+    winner = is_winning(game.board)
+    done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
+
+    return encode_board_to_1d_board(game.board), reward, done
+
+
+def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
+    cdef double count_penalty = -30 if count > 30 else 0
+    cdef double pattern_penalty = 0
     cdef int piece_move_count = 0
     cdef int old_index
-    cdef int reward = 0
+    cdef double reward = 0
     cdef int i
     cdef tuple move
 
@@ -424,19 +451,20 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, list move_
         move = move_history[i]
         if move[0] == piece:
             piece_move_count += 1
-
+    # Apply the penalty
     if piece_move_count > 2:
         pattern_penalty -= 10 * (piece_move_count - 2)
     if piece_move_count > 5:
         pattern_penalty -= 30 * (piece_move_count - 2)
 
     reward = pattern_penalty
+    reward += count_penalty
     old_index = find_piece_1d(piece, board_1d)
 
     if turn == 1:  # red
         if board_1d[new_index] < 0:
             reward += get_piece_value(board_1d[new_index])
-    else:  # black
+    else:          # black
         if board_1d[new_index] > 0:
             reward += get_piece_value(board_1d[new_index])
 
