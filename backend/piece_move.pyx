@@ -401,7 +401,13 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
     cdef tuple general_position
     cdef int row, col
 
-    general = -5 if turn == 1 else 5
+    if turn == 1:
+        ally_pieces = range(1, 17)
+        general = -5
+    else:
+        ally_pieces = range(-16, 0)
+        general = 5
+    
     board_2d = encode_1d_board_to_board(board_1d)
     general_position = find_piece(general, board_2d)
 
@@ -410,11 +416,6 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
 
     row = general_position[0]
     col = general_position[1]
-
-    if turn == 1:
-        ally_pieces = range(1, 17)
-    else:
-        ally_pieces = range(-16, 0)
 
     # Convert board to NumPy array and memoryview
     cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
