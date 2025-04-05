@@ -405,17 +405,34 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
     board_2d = encode_1d_board_to_board(board_1d)
     general_position = find_piece(general, board_2d)
 
-    if general_position:
-        row = general_position[0]
-        col = general_position[1]
-        return True
-    else:
+    if not general_position:
         return False
+
+    row = general_position[0]
+    col = general_position[1]
+
+    if turn == 1:
+        ally_pieces = range(1, 17)
+    else:
+        ally_pieces = range(-16, 0)
+
+    # Convert board to NumPy array and memoryview
+    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
+
+    for piece in ally_pieces:
+        legal_moves = get_legal_moves(piece, board_np)
+        for move in legal_moves:
+            move_x = move[0]
+            move_y = move[1]
+            if move_x == row and move_y == col:
+                return True
+
+    return False
 
 def step(int piece, int new_index, int turn, list move_history, count):
     cdef np.ndarray board_1d_input
     cdef np.ndarray board_1d
-    cdef double reward
+    cdef int reward
     cdef bint done
     cdef object winner
 
@@ -431,11 +448,11 @@ def step(int piece, int new_index, int turn, list move_history, count):
 
 
 def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
-    cdef double count_penalty = -30 if count > 30 else 0
-    cdef double pattern_penalty = 0
+    cdef int count_penalty = -30 if count > 30 else 0
+    cdef int pattern_penalty = 0
     cdef int piece_move_count = 0
     cdef int old_index
-    cdef double reward = 0
+    cdef int reward = 0
     cdef int i
     cdef tuple move
 
@@ -457,7 +474,7 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count,
     if piece_move_count > 5:
         pattern_penalty -= 30 * (piece_move_count - 2)
 
-    reward = pattern_penalty
+    reward += pattern_penalty
     reward += count_penalty
     old_index = find_piece_1d(piece, board_1d)
 
@@ -474,7 +491,7 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count,
     if is_piece_threatened(new_index, board_1d, turn):
         reward -= 100
     if is_check(board_1d, turn):
-        reward -= 200
+        reward -= 500
     if is_check_others(board_1d, turn):
         reward += 500
 
