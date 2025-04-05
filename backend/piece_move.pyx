@@ -2,29 +2,29 @@
 
 # Optional Cython optimizations
 from libc.stdlib cimport malloc, free
+from concurrent.futures import ProcessPoolExecutor
 from game_state import game
 cimport cython
 import numpy as np
 cimport numpy as np
 
+
+def _generate_piece_actions(args):
+    piece, board, get_legal_moves_func, map_func = args
+    legal_moves = get_legal_moves_func(piece, board)
+    legal_action_indices = map_func(legal_moves)
+    return [(piece, action) for action in legal_action_indices]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_all_legal_actions(int turn, int[:, :] board, object get_legal_moves_func, object map_func):
-    cdef int i, piece
-    cdef list result = []
-    piece_range = list(range(1, 17)) if turn == 1 else list(range(-16, 0))
-    cdef list legal_moves
-    cdef list legal_action_indices
-    cdef int action
+def generate_all_legal_actions(turn, board, get_legal_moves_func, map_func):
+    piece_range = range(1, 17) if turn == 1 else range(-16, 0)
+    args = [(piece, board, get_legal_moves_func, map_func) for piece in piece_range]
 
-    for i in range(len(piece_range)):
-        piece = piece_range[i]
-        legal_moves = get_legal_moves_func(piece, board)
-        legal_action_indices = map_func(legal_moves)
-
-        for action in legal_action_indices:
-            result.append((piece, action))
-    
+    result = []
+    with ProcessPoolExecutor() as executor:
+        for r in executor.map(_generate_piece_actions, args):
+            result.extend(r)
     return result
 
 
