@@ -239,6 +239,10 @@ def train_dqn(turn):
 def main():
     global EPSILON
 
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+    print(torch.cuda.get_device_name(0))
+
     # Load checkpoints if they exist
     if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path):
         red_checkpoint = torch.load(red_checkpoint_path)
@@ -380,6 +384,6 @@ def main():
 
 main()
 
-# pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography
+# pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload

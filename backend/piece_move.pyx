@@ -1,8 +1,4 @@
-# piece_move.pyx
-
-# Optional Cython optimizations
-from libc.stdlib cimport malloc, free
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from game_state import game
 cimport cython
 import numpy as np
@@ -22,11 +18,11 @@ def generate_all_legal_actions(turn, board, get_legal_moves_func, map_func):
     args = [(piece, board, get_legal_moves_func, map_func) for piece in piece_range]
 
     result = []
-    with ProcessPoolExecutor() as executor:
+    with ThreadPoolExecutor() as executor:
         for r in executor.map(_generate_piece_actions, args):
             result.extend(r)
     return result
-
+    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -449,7 +445,7 @@ def step(int piece, int new_index, int turn, list move_history, count):
 
 
 def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
-    cdef int count_penalty = -30 if count > 30 else 0
+    cdef int count_penalty = -80 if count > 30 else 0
     cdef int pattern_penalty = 0
     cdef int piece_move_count = 0
     cdef int old_index
@@ -469,6 +465,7 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count,
         move = move_history[i]
         if move[0] == piece:
             piece_move_count += 1
+    
     # Apply the penalty
     if piece_move_count > 2:
         pattern_penalty -= 10 * (piece_move_count - 2)

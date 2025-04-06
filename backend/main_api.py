@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import json
-import board_piece
 import training_attributes
 import piece_move
 import numpy as np
@@ -105,8 +104,8 @@ def get_ai_moves(request: BoardRequest):
 
 @app.post("/is_check")
 def is_check(request: BoardRequest):
-    board_1d = utils.encode_board_to_1d_board(request.board)
-    is_check = board_piece.is_check(board_1d, request.turn)
+    board_1d = piece_move.encode_board_to_1d_board(request.board)
+    is_check = piece_move.is_check(board_1d, request.turn)
 
     return {"is_check": is_check}
 
