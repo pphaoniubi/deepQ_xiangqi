@@ -14,32 +14,33 @@ import piece_move
 
 load_dotenv()
 
-class DQN(nn.Module):
+class XiangqiNet(nn.Module):
     def __init__(self, action_size):
-        super(DQN, self).__init__()
+        super(XiangqiNet, self).__init__()
 
         # Initial Convolutional Block
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(1, 128, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(128)
 
-        # Residual Blocks (3 Blocks)
-        self.res1 = self._residual_block(64)
-        self.res2 = self._residual_block(64)
-        self.res3 = self._residual_block(64)
+        # 15 Residual Blocks
+        self.res_blocks = nn.ModuleList([
+            self._residual_block(128) for _ in range(15)
+        ])
 
-        # Policy Head (Predicts best moves)
-        self.policy_conv = nn.Conv2d(64, 2, kernel_size=1)
-        self.policy_bn = nn.BatchNorm2d(2)
-        self.policy_fc = nn.Linear(2 * 10 * 9, action_size)
+        # Policy Head
+        self.policy_conv1 = nn.Conv2d(128, 32, kernel_size=1)
+        self.policy_bn1 = nn.BatchNorm2d(32)
+        self.policy_conv2 = nn.Conv2d(32, 8, kernel_size=1)
+        self.policy_bn2 = nn.BatchNorm2d(8)
+        self.policy_fc = nn.Linear(8 * 10 * 9, action_size)
 
-        # Value Head (Predicts game outcome)
-        self.value_conv = nn.Conv2d(64, 1, kernel_size=1)
-        self.value_bn = nn.BatchNorm2d(1)
-        self.value_fc1 = nn.Linear(10 * 9, 64)
-        self.value_fc2 = nn.Linear(64, 1)
+        # Value Head
+        self.value_conv = nn.Conv2d(128, 32, kernel_size=1)
+        self.value_bn = nn.BatchNorm2d(32)
+        self.value_fc1 = nn.Linear(32 * 10 * 9, 256)
+        self.value_fc2 = nn.Linear(256, 1)
 
     def _residual_block(self, channels):
-        """Creates a simple Residual Block"""
         return nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(channels),
@@ -49,28 +50,27 @@ class DQN(nn.Module):
         )
 
     def forward(self, x):
-        # print("Input shape before reshape:", x.shape)
-        batch_size = x.shape[0]
-        x = x.view(batch_size, 1, 10, 9)  # Reshape input
+        batch_size = x.size(0)
+        x = x.view(batch_size, 1, 10, 9)
 
-        # Initial Conv Block
+        # Initial Conv
         x = F.relu(self.bn1(self.conv1(x)))
 
-        # Residual Blocks
-        x = F.relu(self.res1(x) + x)
-        x = F.relu(self.res2(x) + x)
-        x = F.relu(self.res3(x) + x)
+        # Residual Tower
+        for res_block in self.res_blocks:
+            x = F.relu(res_block(x) + x)
 
         # Policy Head
-        policy = F.relu(self.policy_bn(self.policy_conv(x)))
-        policy = policy.view(policy.size(0), -1)
-        policy = F.softmax(self.policy_fc(policy), dim=1)  # Probability distribution over moves
+        policy = F.relu(self.policy_bn1(self.policy_conv1(x)))
+        policy = F.relu(self.policy_bn2(self.policy_conv2(policy)))
+        policy = policy.view(batch_size, -1)
+        policy = F.softmax(self.policy_fc(policy), dim=1)
 
         # Value Head
         value = F.relu(self.value_bn(self.value_conv(x)))
-        value = value.view(value.size(0), -1)
+        value = value.view(batch_size, -1)
         value = F.relu(self.value_fc1(value))
-        value = torch.tanh(self.value_fc2(value))  # Outputs between -1 and 1 (win/loss)
+        value = torch.tanh(self.value_fc2(value))
 
         return policy, value
 
@@ -90,13 +90,13 @@ black_replay_buffer = deque(maxlen=500000)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-red_policy_net = DQN(ACTION_SIZE).to(device)
-red_target_net = DQN(ACTION_SIZE).to(device)
+red_policy_net = XiangqiNet(ACTION_SIZE).to(device)
+red_target_net = XiangqiNet(ACTION_SIZE).to(device)
 red_target_net.load_state_dict(red_policy_net.state_dict())
 red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
 
-black_policy_net = DQN(ACTION_SIZE).to(device)
-black_target_net = DQN(ACTION_SIZE).to(device)
+black_policy_net = XiangqiNet(ACTION_SIZE).to(device)
+black_target_net = XiangqiNet(ACTION_SIZE).to(device)
 black_target_net.load_state_dict(black_policy_net.state_dict())
 black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
@@ -227,10 +227,6 @@ def train_dqn(turn):
 def main():
     global EPSILON
 
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
-    print(torch.cuda.get_device_name(0))
-
     # Load checkpoints if they exist
     if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path):
         red_checkpoint = torch.load(red_checkpoint_path)
@@ -345,7 +341,7 @@ def main():
                 EPSILON *= EPSILON_DECAY
 
             # Update target networks periodically
-            if episode % TARGET_UPDATE == 0:
+            if episode % TARGET_UPDATE == 0 and episode != start_episode:
                 red_target_net.load_state_dict(red_policy_net.state_dict())
                 black_target_net.load_state_dict(black_policy_net.state_dict())
 
