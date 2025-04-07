@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from game_state import game
 import os
 import time
+import pickle
 import piece_move
 
 load_dotenv()
@@ -101,26 +102,6 @@ black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
 red_checkpoint_path = os.getenv("RED_FILE_PATH")
 black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
-
-if os.path.exists(red_checkpoint_path):
-    red_checkpoint = torch.load(red_checkpoint_path, map_location=device)
-    red_policy_net.load_state_dict(red_checkpoint['policy_net'])
-    red_target_net.load_state_dict(red_checkpoint['target_net'])
-    red_optimizer.load_state_dict(red_checkpoint['optimizer'])
-    episode = red_checkpoint['episode']
-    EPSILON = red_checkpoint['epsilon']
-    red_policy_net.eval()
-    print("Red model loaded successfully!")
-
-if os.path.exists(black_checkpoint_path):
-    black_checkpoint = torch.load(black_checkpoint_path, map_location=device)
-    black_policy_net.load_state_dict(black_checkpoint['policy_net'])
-    black_target_net.load_state_dict(black_checkpoint['target_net'])
-    black_optimizer.load_state_dict(black_checkpoint['optimizer'])
-    episode = black_checkpoint['episode']
-    EPSILON = black_checkpoint['epsilon']
-    black_policy_net.eval()
-    print("Black model loaded successfully!")
 
 
 def action_to_2d(action_index):
@@ -243,7 +224,6 @@ def train_dqn(turn):
     optimizer.step()
 
 
-
 def main():
     global EPSILON
 
@@ -256,6 +236,11 @@ def main():
         red_checkpoint = torch.load(red_checkpoint_path)
         black_checkpoint = torch.load(black_checkpoint_path)
 
+        with open('red_buffer.pkl', 'rb') as f:
+            red_replay_buffer = pickle.load(f)
+        with open('black_buffer.pkl', 'rb') as f:
+            black_replay_buffer = pickle.load(f)
+
         red_policy_net.load_state_dict(red_checkpoint['policy_net'])
         red_target_net.load_state_dict(red_checkpoint['target_net'])
         red_optimizer.load_state_dict(red_checkpoint['optimizer'])
@@ -265,6 +250,7 @@ def main():
         black_optimizer.load_state_dict(black_checkpoint['optimizer'])
 
         start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
+        EPSILON = max(red_checkpoint['epsilon'], black_checkpoint['epsilon'])
 
         print(f"Starting from episode: {start_episode}")
     else: 
@@ -362,6 +348,11 @@ def main():
             if episode % TARGET_UPDATE == 0:
                 red_target_net.load_state_dict(red_policy_net.state_dict())
                 black_target_net.load_state_dict(black_policy_net.state_dict())
+
+                with open('red_buffer.pkl', 'wb') as f:
+                    pickle.dump(red_replay_buffer, f)
+                with open('black_buffer.pkl', 'wb') as f:
+                    pickle.dump(black_replay_buffer, f)
                 
                 red_checkpoint = {
                     'policy_net': red_policy_net.state_dict(),
@@ -369,7 +360,6 @@ def main():
                     'optimizer': red_optimizer.state_dict(),
                     'episode': episode,
                     'epsilon': EPSILON,
-                    # 'step': step  # if you're using a global step variable
                 }
 
                 black_checkpoint = {
