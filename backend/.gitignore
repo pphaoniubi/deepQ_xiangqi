@@ -6,3 +6,5 @@ build/
 piece_move.c
 piece_move.cp39-win_amd64.pyd
 piece_move.cpython-39-x86_64-linux-gnu.so
+black_buffer.pkl
+red_buffer.pkl
