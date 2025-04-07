@@ -84,8 +84,8 @@ LEARNING_RATE = 0.001
 TARGET_UPDATE = 500
 
 
-red_replay_buffer = deque(maxlen=100000)
-black_replay_buffer = deque(maxlen=100000)
+red_replay_buffer = deque(maxlen=500000)
+black_replay_buffer = deque(maxlen=500000)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -105,12 +105,20 @@ black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
 if os.path.exists(red_checkpoint_path):
     red_checkpoint = torch.load(red_checkpoint_path, map_location=device)
     red_policy_net.load_state_dict(red_checkpoint['policy_net'])
+    red_target_net.load_state_dict(red_checkpoint['target_net'])
+    red_optimizer.load_state_dict(red_checkpoint['optimizer'])
+    episode = red_checkpoint['episode']
+    EPSILON = red_checkpoint['epsilon']
     red_policy_net.eval()
     print("Red model loaded successfully!")
 
 if os.path.exists(black_checkpoint_path):
     black_checkpoint = torch.load(black_checkpoint_path, map_location=device)
     black_policy_net.load_state_dict(black_checkpoint['policy_net'])
+    black_target_net.load_state_dict(black_checkpoint['target_net'])
+    black_optimizer.load_state_dict(black_checkpoint['optimizer'])
+    episode = black_checkpoint['episode']
+    EPSILON = black_checkpoint['epsilon']
     black_policy_net.eval()
     print("Black model loaded successfully!")
 
@@ -262,7 +270,7 @@ def main():
     else: 
         start_episode = 0
 
-    EPISODES = 200001
+    EPISODES = 800001
     start_time = time.time()
 
     try:
@@ -355,21 +363,23 @@ def main():
                 red_target_net.load_state_dict(red_policy_net.state_dict())
                 black_target_net.load_state_dict(black_policy_net.state_dict())
                 
-                # Save checkpoints
                 red_checkpoint = {
                     'policy_net': red_policy_net.state_dict(),
                     'target_net': red_target_net.state_dict(),
                     'optimizer': red_optimizer.state_dict(),
-                    'episode': episode
+                    'episode': episode,
+                    'epsilon': EPSILON,
+                    # 'step': step  # if you're using a global step variable
                 }
-                
+
                 black_checkpoint = {
                     'policy_net': black_policy_net.state_dict(),
                     'target_net': black_target_net.state_dict(),
                     'optimizer': black_optimizer.state_dict(),
-                    'episode': episode
+                    'episode': episode,
+                    'epsilon': EPSILON,
                 }
-                
+
                 torch.save(red_checkpoint, "red_checkpoint.pth")
                 torch.save(black_checkpoint, "black_checkpoint.pth")
                 print(f"Checkpoints saved at episode {episode}")
@@ -386,4 +396,3 @@ main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
-# uvicorn main_api:app --reload
