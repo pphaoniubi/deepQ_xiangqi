@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.amp import autocast, GradScaler
 from dotenv import load_dotenv
 from game_state import game
 import os
@@ -84,11 +85,12 @@ EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
 TARGET_UPDATE = 500
 
-
 red_replay_buffer = deque(maxlen=500000)
 black_replay_buffer = deque(maxlen=500000)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+scaler = GradScaler("cuda")
 
 red_policy_net = XiangqiNet(ACTION_SIZE).to(device)
 red_target_net = XiangqiNet(ACTION_SIZE).to(device)
@@ -172,19 +174,17 @@ def generate_moves(board_state, turn):
 
 def train_dqn(turn):
     """Train the appropriate network based on the current turn."""
+
     if turn == 1:  # Red's turn
         if len(red_replay_buffer) < BATCH_SIZE:
             return
-        
         batch = random.sample(red_replay_buffer, BATCH_SIZE)
         policy_net = red_policy_net
         target_net = red_target_net
         optimizer = red_optimizer
-        
     else:  # Black's turn
         if len(black_replay_buffer) < BATCH_SIZE:
             return
-            
         batch = random.sample(black_replay_buffer, BATCH_SIZE)
         policy_net = black_policy_net
         target_net = black_target_net
@@ -193,35 +193,39 @@ def train_dqn(turn):
     # Unpack batch
     states, actions, rewards, next_states, dones = zip(*batch)
 
-    # Convert to tensors
-    states_np = np.array(states, dtype=np.float32)
-    next_states_np = np.array(next_states, dtype=np.float32)
+    # Convert to numpy arrays efficiently
+    states_np = np.stack(states).astype(np.float32)
+    next_states_np = np.stack(next_states).astype(np.float32)
     actions_np = np.array(actions, dtype=np.int64)
     rewards_np = np.array(rewards, dtype=np.float32).reshape(-1, 1)
     dones_np = np.array(dones, dtype=np.float32).reshape(-1, 1)
 
-    # Move to device
-    states_tensor = torch.tensor(states_np, dtype=torch.float32).to(device)
-    actions_tensor = torch.tensor(actions_np, dtype=torch.long).unsqueeze(1).to(device)
-    rewards_tensor = torch.tensor(rewards_np, dtype=torch.float32).to(device)
-    next_states_tensor = torch.tensor(next_states_np, dtype=torch.float32).to(device)
-    dones_tensor = torch.tensor(dones_np, dtype=torch.float32).to(device)
+    # Move to GPU as tensors
+    states_tensor = torch.from_numpy(states_np).to(device)
+    next_states_tensor = torch.from_numpy(next_states_np).to(device)
+    actions_tensor = torch.from_numpy(actions_np).unsqueeze(1).to(device)
+    rewards_tensor = torch.from_numpy(rewards_np).to(device)
+    dones_tensor = torch.from_numpy(dones_np).to(device)
 
-    # Compute current Q values
-    policy_output, _ = policy_net(states_tensor)  # Unpack the tuple (policy, value)
-    current_q_values = policy_output.gather(1, actions_tensor)
+    # Training mode
+    policy_net.train()
 
-    # Compute next Q values
-    with torch.no_grad():
-        next_policy_output, _ = target_net(next_states_tensor)  # Unpack the tuple
-        next_q_values = next_policy_output.max(1, keepdim=True)[0]
-        target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))
+    with autocast("cuda"):  # Mixed precision
+        policy_output, _ = policy_net(states_tensor)
+        current_q_values = policy_output.gather(1, actions_tensor)
 
-    # Compute loss and optimize
-    loss = F.smooth_l1_loss(current_q_values, target_q_values)
+        with torch.no_grad():
+            target_net.eval()
+            next_policy_output, _ = target_net(next_states_tensor)
+            next_q_values = next_policy_output.max(1, keepdim=True)[0]
+            target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))
+
+        loss = F.smooth_l1_loss(current_q_values, target_q_values)
+
     optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
 
 
 def main():
@@ -250,6 +254,8 @@ def main():
 
         print(f"Starting from episode: {start_episode}")
     else: 
+        red_replay_buffer = deque(maxlen=500000)
+        black_replay_buffer = deque(maxlen=500000)
         start_episode = 0
 
     EPISODES = 800001
