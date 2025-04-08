@@ -83,7 +83,7 @@ EPSILON = 1.0
 EPSILON_MIN = 0.05
 EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
-TARGET_UPDATE = 500
+TARGET_UPDATE = 1000
 
 red_replay_buffer = deque(maxlen=500000)
 black_replay_buffer = deque(maxlen=500000)
@@ -95,13 +95,11 @@ scaler = GradScaler("cuda")
 red_policy_net = XiangqiNet(ACTION_SIZE).to(device)
 red_target_net = XiangqiNet(ACTION_SIZE).to(device)
 red_target_net.load_state_dict(red_policy_net.state_dict())
-red_policy_net = torch.compile(red_policy_net)
 red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
 
 black_policy_net = XiangqiNet(ACTION_SIZE).to(device)
 black_target_net = XiangqiNet(ACTION_SIZE).to(device)
 black_target_net.load_state_dict(black_policy_net.state_dict())
-black_policy_net = torch.compile(black_policy_net)
 black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
 red_checkpoint_path = os.getenv("RED_FILE_PATH")
@@ -351,29 +349,22 @@ def main():
             # Update target networks periodically
             if episode % TARGET_UPDATE == 0 and episode != start_episode:
 
-                # Uncompile
-                red_policy_net_uncompiled = red_policy_net._orig_mod
-                black_policy_net_uncompiled = black_policy_net._orig_mod
-
-                red_target_net_uncompiled = red_policy_net._orig_mod
-                black_target_net_uncompiled = black_policy_net._orig_mod
-
                 with open('red_buffer.pkl', 'wb') as f:
                     pickle.dump(red_replay_buffer, f)
                 with open('black_buffer.pkl', 'wb') as f:
                     pickle.dump(black_replay_buffer, f)
                 
                 red_checkpoint = {
-                    'policy_net': red_policy_net_uncompiled.state_dict(),
-                    'target_net': red_target_net_uncompiled.state_dict(),
+                    'policy_net': red_policy_net.state_dict(),
+                    'target_net': red_target_net.state_dict(),
                     'optimizer': red_optimizer.state_dict(),
                     'episode': episode,
                     'epsilon': EPSILON,
                 }
 
                 black_checkpoint = {
-                    'policy_net': black_policy_net_uncompiled.state_dict(),
-                    'target_net': black_target_net_uncompiled.state_dict(),
+                    'policy_net': black_policy_net.state_dict(),
+                    'target_net': black_target_net.state_dict(),
                     'optimizer': black_optimizer.state_dict(),
                     'episode': episode,
                     'epsilon': EPSILON,
