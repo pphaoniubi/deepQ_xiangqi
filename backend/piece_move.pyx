@@ -6,16 +6,16 @@ cimport numpy as np
 
 
 def _generate_piece_actions(args):
-    piece, board, get_legal_moves_func, map_func = args
-    legal_moves = get_legal_moves_func(piece, board)
-    legal_action_indices = map_func(legal_moves)
-    return [(piece, action) for action in legal_action_indices]
+    piece, board_1d, get_legal_moves_func, map_func = args
+    legal_moves = get_legal_moves_func(piece, board_1d)
+    # legal_action_indices = map_func(legal_moves)
+    return [(piece, action) for action in legal_moves]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_all_legal_actions(turn, board, get_legal_moves_func, map_func):
+def generate_all_legal_actions(turn, board_1d, get_legal_moves_func, map_func):
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
-    args = [(piece, board, get_legal_moves_func, map_func) for piece in piece_range]
+    args = [(piece, board_1d, get_legal_moves_func, map_func) for piece in piece_range]
 
     result = []
     with ThreadPoolExecutor() as executor:
@@ -26,10 +26,10 @@ def generate_all_legal_actions(turn, board, get_legal_moves_func, map_func):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef str is_winning(object board):
-    if find_piece(-5, board) is None:
+cpdef str is_winning(int[:] board_1d):
+    if find_piece_1d(-5, board_1d) is None:
         return "Red wins"
-    elif find_piece(5, board) is None:
+    elif find_piece_1d(5, board_1d) is None:
         return "Black wins"
     else:
         return "Game continues"
@@ -45,7 +45,8 @@ def map_legal_moves_to_actions(list legal_moves):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_legal_moves(int piece, int[:, :] board):
+def get_legal_moves(int piece, int[:] board_1d):
+    cdef int[:, :] board = encode_1d_board_to_board(board_1d)
     cdef int init_x = -1, init_y = -1
     cdef int y, x
     cdef list legal_moves = []
@@ -79,7 +80,7 @@ def get_legal_moves(int piece, int[:, :] board):
                 elif (board[y, x] < 0 and piece > 0) or (board[y, x] > 0 and piece < 0):
                     legal_moves.append((x, y))
                     break
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
     # Horse
     elif abs(piece) == 2 or abs(piece) == 8:
@@ -108,7 +109,7 @@ def get_legal_moves(int piece, int[:, :] board):
                         continue
                     elif (board[new_y, new_x] < 0 and piece > 0) or (board[new_y, new_x] > 0 and piece < 0):
                         legal_moves.append((new_x, new_y))
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
 
     elif abs(piece) == 3 or abs(piece) == 7:
@@ -138,7 +139,7 @@ def get_legal_moves(int piece, int[:, :] board):
                         elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                             legal_moves.append((new_x, new_y))
 
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
 
     elif abs(piece) == 4 or abs(piece) == 6:
@@ -158,7 +159,7 @@ def get_legal_moves(int piece, int[:, :] board):
                 elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                     legal_moves.append((new_x, new_y))
 
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
     elif abs(piece) == 5:
         general_moves = [
@@ -176,7 +177,7 @@ def get_legal_moves(int piece, int[:, :] board):
                 elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                     legal_moves.append((new_x, new_y))
 
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
     elif abs(piece) == 10 or abs(piece) == 11:
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -204,7 +205,7 @@ def get_legal_moves(int piece, int[:, :] board):
                         else: 
                             break
             
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
 
     elif abs(piece) in (12, 13, 14, 15, 16): 
@@ -232,26 +233,22 @@ def get_legal_moves(int piece, int[:, :] board):
             elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                 legal_moves.append((new_x, new_y))
 
-        return legal_moves
+        return map_legal_moves_to_actions(legal_moves)
 
 
 ctypedef np.int32_t INT32_t
 
 
-cpdef list encode_1d_board_to_board(int[:] board_1d):
+cpdef np.ndarray[np.int32_t, ndim=2] encode_1d_board_to_board(int[:] board_1d):
+    cdef np.ndarray[np.int32_t, ndim=2] board_2d = np.empty((10, 9), dtype=np.int32)
     cdef int i, j
-    cdef list board_2d, row
 
     if len(board_1d) != 90:
         raise ValueError("Invalid board size: Expected 90 elements")
 
-    board_2d = []
-
-    for i in range(10):  # 10 rows
-        row = []
-        for j in range(9):  # 9 columns
-            row.append(board_1d[i * 9 + j])
-        board_2d.append(row)
+    for i in range(10):
+        for j in range(9):
+            board_2d[i, j] = board_1d[i * 9 + j]
 
     return board_2d
 
@@ -317,31 +314,21 @@ cpdef int get_piece_value(int piece):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
-    cdef int row, col, piece, move_x, move_y
-    cdef list board_2d, legal_moves
-    cdef tuple move
+    cdef int target_index = index
+    cdef int piece
+    cdef list legal_moves
 
-    row = index // 9
-    col = index % 9
-
-    # Create 2D board for easier checking
-    board_2d = encode_1d_board_to_board(board_1d)
-
-    # Get opponent pieces
+    # Determine opponent pieces
     if turn == 1:
         opponent_pieces = range(-16, 0)
     else:
         opponent_pieces = range(1, 17)
 
-    # Convert to NumPy array (optional: memoryview optimization later)
-    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
-
+    # Check if any opponent move threatens the target index
     for piece in opponent_pieces:
-        legal_moves = get_legal_moves(piece, board_np)
-        for move in legal_moves:
-            move_x = move[0]
-            move_y = move[1]
-            if move_x == col and move_y == row:
+        legal_moves = get_legal_moves(piece, board_1d)
+        for move_index in legal_moves:
+            if move_index == target_index:
                 return True
 
     return False
@@ -351,23 +338,18 @@ cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
 @cython.wraparound(False)
 cpdef bint is_check(int[:] board_1d, int turn):
     cdef int general
-    cdef list board_2d
-    cdef tuple general_position
-    cdef int row, col
-    cdef int piece
-    cdef int move_x, move_y
+    cdef int general_position_1d
+    cdef int piece, move_index
     cdef list legal_moves
 
-    # Create board
+    # Select the general based on turn
     general = 5 if turn == 1 else -5
-    board_2d = encode_1d_board_to_board(board_1d)
-    general_position = find_piece(general, board_2d)
 
-    if not general_position:
-        return False
+    # Find general's position (1D)
+    general_position_1d = find_piece_1d(general, board_1d)
 
-    row = general_position[0]
-    col = general_position[1]
+    if general_position_1d == -1:
+        return False  # General not found (dead? invalid board?)
 
     # Define opponent pieces
     if turn == 1:
@@ -375,15 +357,10 @@ cpdef bint is_check(int[:] board_1d, int turn):
     else:
         opponent_pieces = range(1, 17)
 
-    # Convert board to NumPy array and memoryview
-    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
-
     for piece in opponent_pieces:
-        legal_moves = get_legal_moves(piece, board_np)
-        for move in legal_moves:
-            move_x = move[0]
-            move_y = move[1]
-            if move_x == row and move_y == col:
+        legal_moves = get_legal_moves(piece, board_1d)
+        for move_index in legal_moves:
+            if move_index == general_position_1d:
                 return True
 
     return False
@@ -393,9 +370,9 @@ cpdef bint is_check(int[:] board_1d, int turn):
 @cython.wraparound(False)
 cpdef bint is_check_others(int[:] board_1d, int turn):
     cdef int general
-    cdef list board_2d
-    cdef tuple general_position
-    cdef int row, col
+    cdef int general_position_1d
+    cdef list legal_moves
+    cdef int piece, move_index
 
     if turn == 1:
         ally_pieces = range(1, 17)
@@ -404,44 +381,35 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
         ally_pieces = range(-16, 0)
         general = 5
     
-    board_2d = encode_1d_board_to_board(board_1d)
-    general_position = find_piece(general, board_2d)
+    general_position_1d = find_piece_1d(general, board_1d)
 
-    if not general_position:
+    if general_position_1d == -1:
         return False
-
-    row = general_position[0]
-    col = general_position[1]
-
-    # Convert board to NumPy array and memoryview
-    cdef np.ndarray[INT32_t, ndim=2] board_np = np.array(board_2d, dtype=np.int32)
-
+        
     for piece in ally_pieces:
-        legal_moves = get_legal_moves(piece, board_np)
-        for move in legal_moves:
-            move_x = move[0]
-            move_y = move[1]
-            if move_x == row and move_y == col:
+        legal_moves = get_legal_moves(piece, board_1d)
+        for move_index in legal_moves:
+            if move_index == general_position_1d:
                 return True
 
     return False
 
 def step(int piece, int new_index, int turn, list move_history, count):
-    cdef np.ndarray board_1d_input
     cdef np.ndarray board_1d
+    cdef np.ndarray[np.int32_t, ndim=1] board_1d_input
     cdef int reward
     cdef bint done
     cdef object winner
 
-    board_1d_input = encode_board_to_1d_board(game.board)
+    board_1d_input = np.array(game.board_1d, dtype=np.int32)
     board_1d, reward = make_move_1d(piece, new_index, board_1d_input, turn, count, move_history)
 
-    game.board = encode_1d_board_to_board(board_1d)
+    game.board_1d = board_1d
 
-    winner = is_winning(game.board)
+    winner = is_winning(game.board_1d)
     done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
 
-    return encode_board_to_1d_board(game.board), reward, done
+    return board_1d, reward, done
 
 
 def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):

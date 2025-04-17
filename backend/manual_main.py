@@ -21,7 +21,7 @@ def draw_board(board):
             elif piece <= -10:
                 row += f'{piece} '
         print(row)
-
+    #马
 # Exemple de configuration du plateau (Xiangqi)
 # Utiliser 0 pour les cases vides et des symboles pour les pièces
 game.board = [
@@ -37,6 +37,7 @@ game.board = [
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
 ]
 
+print(piece_move.encode_board_to_1d_board(game.board))
 
 while True:
     draw_board(game.board)
@@ -52,43 +53,3 @@ while True:
     legal_move_chosen = legal_moves[choice]
 
     game.board = piece_move.make_move(piece, legal_move_chosen[0], legal_move_chosen[1], game.board)
-
-    #马
-
-
-    """class DQN(nn.Module):
-    def __init__(self, action_size):
-        super(DQN, self).__init__()
-
-        # Initial Convolutional Layer
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
-
-        # Policy Head
-        self.policy_conv = nn.Conv2d(64, 2, kernel_size=1)
-        self.policy_fc = nn.Linear(2 * 10 * 9, action_size)
-
-        # Value Head
-        self.value_conv = nn.Conv2d(64, 1, kernel_size=1)
-        self.value_fc1 = nn.Linear(10 * 9, 64)
-        self.value_fc2 = nn.Linear(64, 1)
-
-    def forward(self, x):
-        batch_size = x.shape[0]
-        x = x.view(batch_size, 1, 10, 9)
-
-        # Initial Convolutional Block
-        x = F.relu(self.bn1(self.conv1(x)))
-
-        # Policy Head
-        policy = F.relu(self.policy_conv(x))
-        policy = policy.view(policy.size(0), -1)
-        policy = F.softmax(self.policy_fc(policy), dim=1)
-
-        # Value Head
-        value = F.relu(self.value_conv(x))
-        value = value.view(value.size(0), -1)
-        value = F.relu(self.value_fc1(value))
-        value = torch.tanh(self.value_fc2(value))
-
-        return policy, value"""

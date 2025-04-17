@@ -263,8 +263,8 @@ def main():
 
     try:
         for episode in range(start_episode, EPISODES):
-            game.board = game.board_init
-            state = piece_move.encode_board_to_1d_board(game.board)
+            game.board_1d = game.board_1d_init
+            state = game.board_1d
             total_red_reward = 0
             total_black_reward = 0
             red_count = 0
@@ -275,10 +275,10 @@ def main():
             for t in range(160):
                 current_policy_net = red_policy_net if turn == 1 else black_policy_net
                 
-                board_np = np.array(game.board, dtype=np.int32)
+                board_1d_np = np.array(game.board_1d, dtype=np.int32)
                 legal_piece_actions = piece_move.generate_all_legal_actions(
                         turn,
-                        board_np,
+                        board_1d_np,
                         piece_move.get_legal_moves,
                         piece_move.map_legal_moves_to_actions
 
