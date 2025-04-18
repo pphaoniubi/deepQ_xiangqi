@@ -10,16 +10,17 @@ def _generate_piece_actions(args):
     legal_moves = get_legal_moves_func(piece, board_1d)
     return [(piece, action) for action in legal_moves]
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def generate_all_legal_actions(turn, board_1d, get_legal_moves_func):
+cpdef list generate_all_legal_actions(int turn, object board_1d, object get_legal_moves_func):
+    cdef list args
+    cdef list result = []
+    cdef int piece
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
     args = [(piece, board_1d, get_legal_moves_func) for piece in piece_range]
 
-    result = []
     with ThreadPoolExecutor() as executor:
         for r in executor.map(_generate_piece_actions, args):
             result.extend(r)
+
     return result
     
 
@@ -271,22 +272,6 @@ cpdef np.ndarray[INT32_t, ndim=1] encode_board_to_1d_board(list board):
 
     return board_flat
 
-cpdef object find_piece(int piece, list board):
-    cdef int j, i
-    cdef int init_x, init_y
-    cdef int height = len(board)
-    cdef int width
-
-    for j in range(height):
-        width = len(board[j])
-        for i in range(width):
-            if board[j][i] == piece:
-                init_x = i
-                init_y = j
-                return (init_x, init_y)
-
-    return None
-
 
 cpdef int find_piece_1d(int piece, int[:] board_1d):
     cdef int i
@@ -377,7 +362,6 @@ cpdef bint is_check(int[:] board_1d, int turn):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-
 cpdef bint is_check_others(int[:] board_1d, int turn):
     cdef int general
     cdef int general_position_1d
@@ -405,6 +389,7 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
                 return True
 
     return False
+
 
 cpdef tuple step(int piece, int new_index, int turn, list move_history, int count):
     cdef int[:] board_1d, board_1d_input

@@ -235,11 +235,9 @@ def main():
     if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path):
         red_checkpoint = torch.load(red_checkpoint_path)
         black_checkpoint = torch.load(black_checkpoint_path)
-
-        with open('red_buffer.pkl', 'rb') as f:
-            red_replay_buffer = pickle.load(f)
-        with open('black_buffer.pkl', 'rb') as f:
-            black_replay_buffer = pickle.load(f)
+        
+        red_replay_buffer = deque(maxlen=500000)
+        black_replay_buffer = deque(maxlen=500000)
 
         red_policy_net.load_state_dict(red_checkpoint['policy_net'])
         red_target_net.load_state_dict(red_checkpoint['target_net'])
@@ -348,10 +346,6 @@ def main():
             # Update target networks periodically
             if episode % TARGET_UPDATE == 0 and episode != start_episode:
 
-                with open('red_buffer.pkl', 'wb') as f:
-                    pickle.dump(red_replay_buffer, f)
-                with open('black_buffer.pkl', 'wb') as f:
-                    pickle.dump(black_replay_buffer, f)
                 
                 red_checkpoint = {
                     'policy_net': red_policy_net.state_dict(),
