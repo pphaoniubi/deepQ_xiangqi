@@ -280,7 +280,6 @@ def main():
                         turn,
                         board_1d_np,
                         piece_move.get_legal_moves,
-                        piece_move.map_legal_moves_to_actions
 
                 )
 

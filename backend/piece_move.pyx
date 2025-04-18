@@ -6,16 +6,15 @@ cimport numpy as np
 
 
 def _generate_piece_actions(args):
-    piece, board_1d, get_legal_moves_func, map_func = args
+    piece, board_1d, get_legal_moves_func = args
     legal_moves = get_legal_moves_func(piece, board_1d)
-    # legal_action_indices = map_func(legal_moves)
     return [(piece, action) for action in legal_moves]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_all_legal_actions(turn, board_1d, get_legal_moves_func, map_func):
+def generate_all_legal_actions(turn, board_1d, get_legal_moves_func):
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
-    args = [(piece, board_1d, get_legal_moves_func, map_func) for piece in piece_range]
+    args = [(piece, board_1d, get_legal_moves_func) for piece in piece_range]
 
     result = []
     with ThreadPoolExecutor() as executor:
@@ -36,11 +35,16 @@ cpdef str is_winning(int[:] board_1d):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_legal_moves_to_actions(list legal_moves):
-    cdef list index = []
+cpdef np.ndarray[np.int32_t, ndim=1] map_legal_moves_to_actions(int[:, :] legal_moves):
+    cdef Py_ssize_t i, n = legal_moves.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] index = np.empty(n, dtype=np.int32)
     cdef int x, y
-    for x, y in legal_moves:
-        index.append(y * 9 + x)
+
+    for i in range(n):
+        x = legal_moves[i, 0]
+        y = legal_moves[i, 1]
+        index[i] = y * 9 + x
+
     return index
 
 @cython.boundscheck(False)
@@ -48,7 +52,7 @@ def map_legal_moves_to_actions(list legal_moves):
 def get_legal_moves(int piece, int[:] board_1d):
     cdef int[:, :] board = encode_1d_board_to_board(board_1d)
     cdef int init_x = -1, init_y = -1
-    cdef int y, x
+    cdef int x, y, dx, dy, new_x, new_y, block_x, block_y
     cdef list legal_moves = []
 
     # Find the piece on the board
@@ -61,7 +65,7 @@ def get_legal_moves(int piece, int[:] board_1d):
             break
 
     if init_x == -1:
-        return []
+        return np.empty((0,), dtype=np.int32)
 
     # Chariot
     if abs(piece) == 1 or abs(piece) == 9:
@@ -80,7 +84,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                 elif (board[y, x] < 0 and piece > 0) or (board[y, x] > 0 and piece < 0):
                     legal_moves.append((x, y))
                     break
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
     # Horse
     elif abs(piece) == 2 or abs(piece) == 8:
@@ -109,7 +113,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                         continue
                     elif (board[new_y, new_x] < 0 and piece > 0) or (board[new_y, new_x] > 0 and piece < 0):
                         legal_moves.append((new_x, new_y))
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
 
     elif abs(piece) == 3 or abs(piece) == 7:
@@ -139,7 +143,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                         elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                             legal_moves.append((new_x, new_y))
 
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
 
     elif abs(piece) == 4 or abs(piece) == 6:
@@ -159,7 +163,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                 elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                     legal_moves.append((new_x, new_y))
 
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
     elif abs(piece) == 5:
         general_moves = [
@@ -177,7 +181,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                 elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                     legal_moves.append((new_x, new_y))
 
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
     elif abs(piece) == 10 or abs(piece) == 11:
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -205,7 +209,7 @@ def get_legal_moves(int piece, int[:] board_1d):
                         else: 
                             break
             
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
 
     elif abs(piece) in (12, 13, 14, 15, 16): 
@@ -233,7 +237,7 @@ def get_legal_moves(int piece, int[:] board_1d):
             elif (board[new_y][new_x] < 0 and piece > 0) or (board[new_y][new_x] > 0 and piece < 0):  # Enemy piece, valid for capture
                 legal_moves.append((new_x, new_y))
 
-        return map_legal_moves_to_actions(legal_moves)
+        return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
 
 ctypedef np.int32_t INT32_t
@@ -315,8 +319,9 @@ cpdef int get_piece_value(int piece):
 @cython.wraparound(False)
 cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
     cdef int target_index = index
-    cdef int piece
-    cdef list legal_moves
+    cdef int piece, move_index
+    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
+    cdef Py_ssize_t i, n
 
     # Determine opponent pieces
     if turn == 1:
@@ -326,8 +331,10 @@ cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
 
     # Check if any opponent move threatens the target index
     for piece in opponent_pieces:
-        legal_moves = get_legal_moves(piece, board_1d)
-        for move_index in legal_moves:
+        legal_moves = get_legal_moves(piece, board_1d)  # must return np.ndarray[int32, ndim=1]
+        n = legal_moves.shape[0]
+        for i in range(n):
+            move_index = legal_moves[i]
             if move_index == target_index:
                 return True
 
@@ -340,16 +347,16 @@ cpdef bint is_check(int[:] board_1d, int turn):
     cdef int general
     cdef int general_position_1d
     cdef int piece, move_index
-    cdef list legal_moves
+    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
+    cdef Py_ssize_t i, n
 
     # Select the general based on turn
     general = 5 if turn == 1 else -5
 
     # Find general's position (1D)
     general_position_1d = find_piece_1d(general, board_1d)
-
     if general_position_1d == -1:
-        return False  # General not found (dead? invalid board?)
+        return False  # General not found
 
     # Define opponent pieces
     if turn == 1:
@@ -359,7 +366,9 @@ cpdef bint is_check(int[:] board_1d, int turn):
 
     for piece in opponent_pieces:
         legal_moves = get_legal_moves(piece, board_1d)
-        for move_index in legal_moves:
+        n = legal_moves.shape[0]
+        for i in range(n):
+            move_index = legal_moves[i]
             if move_index == general_position_1d:
                 return True
 
@@ -368,27 +377,30 @@ cpdef bint is_check(int[:] board_1d, int turn):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+
 cpdef bint is_check_others(int[:] board_1d, int turn):
     cdef int general
     cdef int general_position_1d
-    cdef list legal_moves
     cdef int piece, move_index
+    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
+    cdef Py_ssize_t i, n
 
     if turn == 1:
         ally_pieces = range(1, 17)
-        general = -5
+        general = -5  # opponent's general
     else:
         ally_pieces = range(-16, 0)
         general = 5
-    
-    general_position_1d = find_piece_1d(general, board_1d)
 
+    general_position_1d = find_piece_1d(general, board_1d)
     if general_position_1d == -1:
-        return False
-        
+        return False  # general not found
+
     for piece in ally_pieces:
         legal_moves = get_legal_moves(piece, board_1d)
-        for move_index in legal_moves:
+        n = legal_moves.shape[0]
+        for i in range(n):
+            move_index = legal_moves[i]
             if move_index == general_position_1d:
                 return True
 
