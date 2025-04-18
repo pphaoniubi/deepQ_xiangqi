@@ -49,7 +49,7 @@ cpdef np.ndarray[np.int32_t, ndim=1] map_legal_moves_to_actions(int[:, :] legal_
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_legal_moves(int piece, int[:] board_1d):
+cpdef np.ndarray[np.int32_t, ndim=1] get_legal_moves(int piece, int[:] board_1d):
     cdef int[:, :] board = encode_1d_board_to_board(board_1d)
     cdef int init_x = -1, init_y = -1
     cdef int x, y, dx, dy, new_x, new_y, block_x, block_y
@@ -406,56 +406,57 @@ cpdef bint is_check_others(int[:] board_1d, int turn):
 
     return False
 
-def step(int piece, int new_index, int turn, list move_history, count):
-    cdef np.ndarray board_1d
-    cdef np.ndarray[np.int32_t, ndim=1] board_1d_input
+cpdef tuple step(int piece, int new_index, int turn, list move_history, int count):
+    cdef int[:] board_1d, board_1d_input
     cdef int reward
     cdef bint done
-    cdef object winner
+    cdef str winner  # assuming is_winning returns a string
 
-    board_1d_input = np.array(game.board_1d, dtype=np.int32)
+    board_1d_input = np.asarray(game.board_1d, dtype=np.int32)
     board_1d, reward = make_move_1d(piece, new_index, board_1d_input, turn, count, move_history)
-
     game.board_1d = board_1d
 
-    winner = is_winning(game.board_1d)
+    winner = is_winning(board_1d)  # works directly on updated 1D board
     done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
-
     return board_1d, reward, done
 
 
-def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
+cpdef tuple make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
     cdef int count_penalty = -80 if count > 30 else 0
     cdef int pattern_penalty = 0
     cdef int piece_move_count = 0
-    cdef int old_index
+    cdef int old_index = find_piece_1d(piece, board_1d)
     cdef int reward = 0
-    cdef int i
-    cdef tuple move
+    cdef int i, move_piece, move_index
+    cdef int mv_len = len(move_history)
 
-    if len(move_history) >= 4:
-        if (move_history[0][0] == move_history[2][0] == piece and
-            move_history[1][0] == move_history[3][0] and
-            move_history[0][1] == move_history[2][1] and
-            move_history[1][1] == move_history[3][1]):
+    # Detect repetition pattern
+    if mv_len >= 4:
+        move0 = move_history[0]
+        move1 = move_history[1]
+        move2 = move_history[2]
+        move3 = move_history[3]
+
+        if (move0[0] == move2[0] == piece and
+            move1[0] == move3[0] and
+            move0[1] == move2[1] and
+            move1[1] == move3[1]):
             pattern_penalty = -200
 
     # Count how many times this piece has moved
-    for i in range(len(move_history)):
-        move = move_history[i]
-        if move[0] == piece:
+    for i in range(mv_len):
+        move_piece = move_history[i][0]
+        if move_piece == piece:
             piece_move_count += 1
-    
-    # Apply the penalty
+
     if piece_move_count > 2:
         pattern_penalty -= 10 * (piece_move_count - 2)
     if piece_move_count > 5:
         pattern_penalty -= 30 * (piece_move_count - 2)
 
-    reward += pattern_penalty
-    reward += count_penalty
-    old_index = find_piece_1d(piece, board_1d)
+    reward += pattern_penalty + count_penalty
 
+    # Reward if capturing
     if turn == 1:  # red
         if board_1d[new_index] < 0:
             reward += get_piece_value(board_1d[new_index])
@@ -463,9 +464,11 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count,
         if board_1d[new_index] > 0:
             reward += get_piece_value(board_1d[new_index])
 
+    # Perform the move
     board_1d[old_index] = 0
     board_1d[new_index] = piece
 
+    # Threat and check detection
     if is_piece_threatened(new_index, board_1d, turn):
         reward -= 100
     if is_check(board_1d, turn):
@@ -473,4 +476,4 @@ def make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count,
     if is_check_others(board_1d, turn):
         reward += 500
 
-    return np.asarray(board_1d), reward
+    return board_1d, reward  # already a memoryview; no need to wrap
