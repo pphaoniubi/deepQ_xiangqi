@@ -105,6 +105,10 @@ black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 red_checkpoint_path = os.getenv("RED_FILE_PATH")
 black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
 
+def convert_if_memoryview(x):
+    if "_memoryviewslice" in str(type(x)) or isinstance(x, memoryview):
+        return np.array(x, dtype=np.int32, copy=True)
+    return x
 
 def action_to_2d(action_index):
     row = action_index // 9
@@ -232,12 +236,13 @@ def main():
     global EPSILON
 
     # Load checkpoints if they exist
-    if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path):
+    if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path) \
+    and os.path.exists("red_replay_buffer.pt") and os.path.exists("black_replay_buffer.pt"):
         red_checkpoint = torch.load(red_checkpoint_path)
         black_checkpoint = torch.load(black_checkpoint_path)
         
-        red_replay_buffer = deque(maxlen=500000)
-        black_replay_buffer = deque(maxlen=500000)
+        red_replay_buffer = torch.load("red_replay_buffer.pt", weights_only=False)
+        black_replay_buffer = torch.load("black_replay_buffer.pt", weights_only=False)
 
         red_policy_net.load_state_dict(red_checkpoint['policy_net'])
         red_target_net.load_state_dict(red_checkpoint['target_net'])
@@ -321,6 +326,9 @@ def main():
                 count = red_count if turn == 1 else black_count
                 next_state, reward, done = piece_move.step(piece, action, turn, move_history, count)
 
+                state = convert_if_memoryview(state)
+                next_state = convert_if_memoryview(next_state)
+
                 # Store transition in appropriate replay buffer
                 if turn == 1:
                     red_replay_buffer.append((state, action, reward, next_state, done))
@@ -345,8 +353,6 @@ def main():
 
             # Update target networks periodically
             if episode % TARGET_UPDATE == 0 and episode != start_episode:
-
-                
                 red_checkpoint = {
                     'policy_net': red_policy_net.state_dict(),
                     'target_net': red_target_net.state_dict(),
@@ -365,6 +371,10 @@ def main():
 
                 torch.save(red_checkpoint, "red_checkpoint.pth")
                 torch.save(black_checkpoint, "black_checkpoint.pth")
+
+                torch.save(red_replay_buffer, "red_replay_buffer.pt")
+                torch.save(black_replay_buffer, "black_replay_buffer.pt")
+
                 print(f"Checkpoints saved at episode {episode}")
 
             print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {game_count}")
