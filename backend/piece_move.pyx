@@ -23,13 +23,12 @@ cpdef list generate_all_legal_actions(int turn, object board_1d, object get_lega
 
     return result
     
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef str is_winning(int[:] board_1d):
-    if find_piece_1d(-5, board_1d) is None:
+    if find_piece_1d(-5, board_1d) == -1:
         return "Red wins"
-    elif find_piece_1d(5, board_1d) is None:
+    elif find_piece_1d(5, board_1d) == -1:
         return "Black wins"
     else:
         return "Game continues"
@@ -395,13 +394,14 @@ cpdef tuple step(int piece, int new_index, int turn, list move_history, int coun
     cdef int[:] board_1d, board_1d_input
     cdef int reward
     cdef bint done
-    cdef str winner  # assuming is_winning returns a string
+    cdef str winner
 
     board_1d_input = np.asarray(game.board_1d, dtype=np.int32)
     board_1d, reward = make_move_1d(piece, new_index, board_1d_input, turn, count, move_history)
     game.board_1d = board_1d
 
     winner = is_winning(board_1d)  # works directly on updated 1D board
+    # print(winner)
     done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
     return board_1d, reward, done
 
