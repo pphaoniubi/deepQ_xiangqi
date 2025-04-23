@@ -350,36 +350,35 @@ def main():
             # Decay epsilon
             if EPSILON > EPSILON_MIN:
                 EPSILON *= EPSILON_DECAY
-
-            # Update target networks periodically
-            if episode % TARGET_UPDATE == 0 and episode != start_episode:
-                red_checkpoint = {
-                    'policy_net': red_policy_net.state_dict(),
-                    'target_net': red_target_net.state_dict(),
-                    'optimizer': red_optimizer.state_dict(),
-                    'episode': episode,
-                    'epsilon': EPSILON,
-                }
-
-                black_checkpoint = {
-                    'policy_net': black_policy_net.state_dict(),
-                    'target_net': black_target_net.state_dict(),
-                    'optimizer': black_optimizer.state_dict(),
-                    'episode': episode,
-                    'epsilon': EPSILON,
-                }
-
-                torch.save(red_checkpoint, "red_checkpoint.pth")
-                torch.save(black_checkpoint, "black_checkpoint.pth")
-
-                torch.save(red_replay_buffer, "red_replay_buffer.pt")
-                torch.save(black_replay_buffer, "black_replay_buffer.pt")
-
-                print(f"Checkpoints saved at episode {episode}")
-
+                
             print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {game_count}")
 
     except KeyboardInterrupt:
+
+        red_checkpoint = {
+                'policy_net': red_policy_net.state_dict(),
+                'target_net': red_target_net.state_dict(),
+                'optimizer': red_optimizer.state_dict(),
+                'episode': episode,
+                'epsilon': EPSILON,
+            }
+
+        black_checkpoint = {
+                'policy_net': black_policy_net.state_dict(),
+                'target_net': black_target_net.state_dict(),
+                'optimizer': black_optimizer.state_dict(),
+                'episode': episode,
+                'epsilon': EPSILON,
+            }
+
+        torch.save(red_checkpoint, "red_checkpoint.pth")
+        torch.save(black_checkpoint, "black_checkpoint.pth")
+
+        torch.save(red_replay_buffer, "red_replay_buffer.pt")
+        torch.save(black_replay_buffer, "black_replay_buffer.pt")
+
+        print(f"Checkpoints saved at episode {episode}")
+        
         end_time = time.time()
         running_time = end_time - start_time
         print("\nRunning time:", running_time, "seconds")
