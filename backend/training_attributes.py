@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from game_state import game
 import os
 import time
-import pickle
 import piece_move
 
 load_dotenv()
@@ -110,11 +109,6 @@ def convert_if_memoryview(x):
         return np.array(x, dtype=np.int32, copy=True)
     return x
 
-def action_to_2d(action_index):
-    row = action_index // 9
-    col = action_index % 9 
-    return row, col
-
 def generate_moves(board_state, turn):
     if turn == 1:
         checkpoint_path = os.getenv("RED_FILE_PATH")
@@ -148,10 +142,10 @@ def generate_moves(board_state, turn):
     # Generate list of all legal (piece, action) pairs
     piece_range = range(1, 17) if turn == 1 else range(-16, 0)
     legal_piece_actions = []
+    board_state = piece_move.encode_board_to_1d_board(board_state)
+    board_state_np = np.array(board_state, dtype=np.int32)
     for piece in piece_range:
-        board_np = np.array(board_state, dtype=np.int32)
-        legal_moves = piece_move.get_legal_moves(piece, board_np)
-        legal_action_indices = piece_move.map_legal_moves_to_actions(legal_moves) 
+        legal_action_indices = piece_move.get_legal_moves(piece, board_state_np)
         for action in legal_action_indices:
             legal_piece_actions.append((piece, action))
 
@@ -168,9 +162,8 @@ def generate_moves(board_state, turn):
 
     if best_pair:
         piece, action = best_pair
-        row, col = action_to_2d(action)
-        print(f"AI selected piece {piece} with action {(row, col)}")
-        return piece, (row, col)
+        print(f"AI selected piece {piece} with action {action}")
+        return piece, action
     else:
         print("No valid move found!")
         return None, None
@@ -254,6 +247,7 @@ def main():
 
         start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
         EPSILON = max(red_checkpoint['epsilon'], black_checkpoint['epsilon'])
+        print(EPSILON)
 
         print(f"Starting from episode: {start_episode}")
     else: 
@@ -350,7 +344,7 @@ def main():
             # Decay epsilon
             if EPSILON > EPSILON_MIN:
                 EPSILON *= EPSILON_DECAY
-                
+
             print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {game_count}")
 
     except KeyboardInterrupt:
@@ -384,7 +378,8 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-main()
+# main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+# uvicorn main_api:app --reload

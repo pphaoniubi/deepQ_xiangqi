@@ -51,12 +51,11 @@ def create_user(username: str):
 
 @app.post("/get_legal_moves")
 def get_legal_moves(request: BoardRequest):
-    print(request.piece, request.board)
-    
-    board_np = np.array(request.board, dtype=np.int32)
-    legal_moves = piece_move.get_legal_moves(request.piece, board_np)
-
-    return {"legal_moves": legal_moves}
+    board_1d = piece_move.encode_board_to_1d_board(request.board)
+    legal_moves_1d = piece_move.get_legal_moves(request.piece, board_1d)
+    legal_moves = piece_move.map_actions_to_legal_moves(legal_moves_1d)
+    print(legal_moves)
+    return {"legal_moves": legal_moves.tolist()}
 
 @app.post("/save_board")
 def save_board(request: BoardRequest):
@@ -96,10 +95,11 @@ def get_turn(request: BoardRequest):
  
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
-
-    AI_moves = training_attributes.generate_moves(request.board, request.turn)
+    AI_move_indice = training_attributes.generate_moves(request.board, request.turn)
+    AI_move_indice = np.array(AI_move_indice, dtype=np.int32)
     
-    return {"AI_moves": AI_moves}
+    AI_moves = piece_move.map_actions_to_legal_moves(AI_move_indice)
+    return {"AI_moves": AI_moves.tolist()}
 
 
 @app.post("/is_check")

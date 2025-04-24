@@ -49,6 +49,22 @@ cpdef np.ndarray[np.int32_t, ndim=1] map_legal_moves_to_actions(int[:, :] legal_
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cpdef np.ndarray[np.int32_t, ndim=2] map_actions_to_legal_moves(np.ndarray[np.int32_t, ndim=1] actions):
+    cdef Py_ssize_t i, n = actions.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=2] moves = np.empty((n, 2), dtype=np.int32)
+    cdef int action, x, y
+
+    for i in range(n):
+        action = actions[i]
+        x = action % 9
+        y = action // 9
+        moves[i, 0] = x
+        moves[i, 1] = y
+
+    return moves
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef np.ndarray[np.int32_t, ndim=1] get_legal_moves(int piece, int[:] board_1d):
     cdef int[:, :] board = encode_1d_board_to_board(board_1d)
     cdef int init_x = -1, init_y = -1
@@ -401,8 +417,11 @@ cpdef tuple step(int piece, int new_index, int turn, list move_history, int coun
     game.board_1d = board_1d
 
     winner = is_winning(board_1d)  # works directly on updated 1D board
-    # print(winner)
     done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
+
+    if done and count < 30:
+        reward += 3000
+
     return board_1d, reward, done
 
 
