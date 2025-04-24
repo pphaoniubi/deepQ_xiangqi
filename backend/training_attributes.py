@@ -162,8 +162,12 @@ def generate_moves(board_state, turn):
 
     if best_pair:
         piece, action = best_pair
-        print(f"AI selected piece {piece} with action {action}")
-        return piece, action
+        moves = piece_move.map_actions_to_legal_moves(np.array([action], dtype=np.int32))
+        moves = moves[0].tolist()
+        moves = moves[::-1]         # reverse elements
+        
+        print(f"AI selected piece {piece} with move {moves}")
+        return piece, moves
     else:
         print("No valid move found!")
         return None, None

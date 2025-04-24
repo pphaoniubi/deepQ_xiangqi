@@ -95,11 +95,12 @@ def get_turn(request: BoardRequest):
  
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
-    AI_move_indice = training_attributes.generate_moves(request.board, request.turn)
-    AI_move_indice = np.array(AI_move_indice, dtype=np.int32)
+    AI_moves = training_attributes.generate_moves(request.board, request.turn)
     
-    AI_moves = piece_move.map_actions_to_legal_moves(AI_move_indice)
-    return {"AI_moves": AI_moves.tolist()}
+    if AI_moves == (None, None):
+        return {"AI_moves": []}
+
+    return {"AI_moves": AI_moves}
 
 
 @app.post("/is_check")
