@@ -124,8 +124,8 @@ def generate_moves(board_state, turn):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
 
     checkpoint = torch.load(checkpoint_path)
-    episode = checkpoint['episode']
-    print(f"Using {'red' if turn == 1 else 'black'} agent at episode: {episode}")
+    batch = checkpoint['batch']
+    print(f"Using {'red' if turn == 1 else 'black'} agent at batch: {batch}")
     
     # Load the trained policy network
     policy_net.load_state_dict(checkpoint['policy_net'])
@@ -391,7 +391,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-main()
+# main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128

@@ -161,7 +161,7 @@ cpdef np.ndarray[np.int32_t, ndim=1] get_legal_moves(int piece, int[:] board_1d)
             new_x, new_y = init_x + dx, init_y + dy
 
             if 0 <= new_x < 9 and 0 <= new_y < 10:
-                if (new_y <= 4) or (new_y >= 5):
+                if (piece < 0 and new_y <= 4) or (piece > 0 and new_y >= 5):
                     block_x, block_y = block_positions[(dx, dy)]
                     if board[block_y][block_x] == 0:
 
