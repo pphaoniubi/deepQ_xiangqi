@@ -355,10 +355,10 @@ def main():
                 train_dqn(1)   # train red
                 train_dqn(-1)  # train black
 
-            if EPSILON > EPSILON_MIN:
-                EPSILON *= EPSILON_DECAY
+            """if EPSILON > EPSILON_MIN:
+                EPSILON *= EPSILON_DECAY"""
 
-            if batch_start % 50 == 0:
+            if batch_start % 100 == 0:
                 print(f"Batch {batch_start}, EPSILON: {EPSILON}")
 
     except KeyboardInterrupt:
@@ -392,8 +392,6 @@ def main():
 
 
 main()
-
-
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
