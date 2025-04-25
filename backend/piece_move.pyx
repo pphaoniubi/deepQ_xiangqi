@@ -1,25 +1,38 @@
-from concurrent.futures import ThreadPoolExecutor
 from game_state import game
 cimport cython
 import numpy as np
 cimport numpy as np
 
 
-def _generate_piece_actions(args):
-    piece, board_1d, get_legal_moves_func = args
-    legal_moves = get_legal_moves_func(piece, board_1d)
-    return [(piece, action) for action in legal_moves]
-
-cpdef list generate_all_legal_actions(int turn, object board_1d, object get_legal_moves_func):
-    cdef list args
+cpdef list generate_all_legal_actions(int turn, object board_1d_obj):
+    cdef np.ndarray[np.int32_t, ndim=1] board_np
+    cdef int[:] board_1d
     cdef list result = []
-    cdef int piece
-    piece_range = range(1, 17) if turn == 1 else range(-16, 0)
-    args = [(piece, board_1d, get_legal_moves_func) for piece in piece_range]
+    cdef int piece, i
+    cdef int start, end
+    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
 
-    with ThreadPoolExecutor() as executor:
-        for r in executor.map(_generate_piece_actions, args):
-            result.extend(r)
+    # Validate and convert input
+    if not isinstance(board_1d_obj, np.ndarray):
+        raise TypeError("Expected a NumPy array")
+
+    board_np = np.ascontiguousarray(board_1d_obj, dtype=np.int32)
+
+    if board_np.ndim != 1 or board_np.shape[0] != 90:
+        raise ValueError("Expected a 1D array of length 90")
+
+    board_1d = board_np  # this is now safe
+
+    # Turn-specific piece range
+    if turn == 1:
+        start, end = 1, 17
+    else:
+        start, end = -16, 0
+
+    for piece in range(start, end):
+        legal_moves = get_legal_moves(piece, board_1d)
+        for i in range(legal_moves.shape[0]):
+            result.append((piece, legal_moves[i]))
 
     return result
     

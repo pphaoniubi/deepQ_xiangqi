@@ -11,6 +11,8 @@ from game_state import game
 import os
 import time
 import piece_move
+from concurrent.futures import ThreadPoolExecutor
+from collections import deque
 
 load_dotenv()
 
@@ -165,7 +167,7 @@ def generate_moves(board_state, turn):
         moves = piece_move.map_actions_to_legal_moves(np.array([action], dtype=np.int32))
         moves = moves[0].tolist()
         moves = moves[::-1]         # reverse elements
-        
+
         print(f"AI selected piece {piece} with move {moves}")
         return piece, moves
     else:
@@ -229,10 +231,86 @@ def train_dqn(turn):
     scaler.update()
 
 
+def simulate_game(game_id, red_policy_net, black_policy_net, red_replay_buffer, black_replay_buffer, device):
+    global EPSILON
+    game.board_1d = game.board_1d_init
+    state = game.board_1d
+    red_count = 0
+    black_count = 0
+    turn = 1
+    total_red_reward = 0
+    total_black_reward = 0
+    red_move_history = []
+    black_move_history = []
+
+    for t in range(160):
+        current_policy_net = red_policy_net if turn == 1 else black_policy_net
+
+        board_1d_np = np.array(state, dtype=np.int32)
+        legal_piece_actions = piece_move.generate_all_legal_actions(turn, board_1d_np)
+
+        if not legal_piece_actions:
+            break
+
+        if random.random() < EPSILON:
+            piece, action = random.choice(legal_piece_actions)
+        else:
+            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+            with torch.no_grad():
+                policy_output, _ = current_policy_net(state_tensor)
+                q_values = policy_output.cpu().numpy().squeeze()
+
+            best_q_value = float('-inf')
+            best_pair = None
+            for p, a in legal_piece_actions:
+                if q_values[a] > best_q_value:
+                    best_q_value = q_values[a]
+                    best_pair = (p, a)
+            piece, action = best_pair
+
+        if turn == 1:
+            red_count += 1
+            if len(red_move_history) < 4:
+                red_move_history.append((piece, action))
+            elif len(red_move_history) == 4:
+                red_move_history.pop(0)
+                red_move_history.append((piece, action))
+        else: 
+            black_count += 1
+            if len(black_move_history) < 4:
+                black_move_history.append((piece, action))
+            elif len(black_move_history) == 4:
+                black_move_history.pop(0)
+                black_move_history.append((piece, action))
+
+        move_history = red_move_history if turn == 1 else black_move_history 
+        count = red_count if turn == 1 else black_count
+        next_state, reward, done = piece_move.step(piece, action, turn, move_history, count)
+
+        state = convert_if_memoryview(state)
+        next_state = convert_if_memoryview(next_state)
+
+        # Store transition
+        if turn == 1:
+            red_replay_buffer.append((state, action, reward, next_state, done))
+            total_red_reward += reward
+        else:
+            black_replay_buffer.append((state, action, reward, next_state, done))
+            total_black_reward += reward
+
+        state = next_state
+        turn = 1 - turn
+
+        if done:
+            break
+
+    return total_red_reward, total_black_reward
+
+
 def main():
     global EPSILON
 
-    # Load checkpoints if they exist
+    # initialize networks, optimizers, etc.
     if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path) \
     and os.path.exists("red_replay_buffer.pt") and os.path.exists("black_replay_buffer.pt"):
         red_checkpoint = torch.load(red_checkpoint_path)
@@ -249,115 +327,47 @@ def main():
         black_target_net.load_state_dict(black_checkpoint['target_net'])
         black_optimizer.load_state_dict(black_checkpoint['optimizer'])
 
-        start_episode = max(red_checkpoint['episode'], black_checkpoint['episode'])
+        batch = max(red_checkpoint['batch'], black_checkpoint['batch'])
         EPSILON = max(red_checkpoint['epsilon'], black_checkpoint['epsilon'])
         print(EPSILON)
 
-        print(f"Starting from episode: {start_episode}")
+        print(f"Starting from batch: {batch}")
     else: 
         red_replay_buffer = deque(maxlen=500000)
         black_replay_buffer = deque(maxlen=500000)
-        start_episode = 0
+        batch = 0
 
     EPISODES = 800001
+    games_per_batch = 14
     start_time = time.time()
 
     try:
-        for episode in range(start_episode, EPISODES):
-            game.board_1d = game.board_1d_init
-            state = game.board_1d
-            total_red_reward = 0
-            total_black_reward = 0
-            red_count = 0
-            black_count = 0
-            turn = 1
-            red_move_history = []
-            black_move_history = []
-            for t in range(160):
-                current_policy_net = red_policy_net if turn == 1 else black_policy_net
-                
-                board_1d_np = np.array(game.board_1d, dtype=np.int32)
-                legal_piece_actions = piece_move.generate_all_legal_actions(
-                        turn,
-                        board_1d_np,
-                        piece_move.get_legal_moves,
+        for batch_start in range(batch, EPISODES, games_per_batch):
+            with ThreadPoolExecutor(max_workers=games_per_batch) as executor:
+                futures = [
+                    executor.submit(simulate_game, game_id, red_policy_net, black_policy_net, red_replay_buffer, black_replay_buffer, device)
+                    for game_id in range(games_per_batch)
+                ]
+                results = [future.result() for future in futures]
 
-                )
+            # After batch of games
+            for _ in range(games_per_batch):
+                train_dqn(1)   # train red
+                train_dqn(-1)  # train black
 
-                if not legal_piece_actions:
-                    break
-
-                if random.random() < EPSILON:
-                    piece, action = random.choice(legal_piece_actions)
-                else:
-                    state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
-                    with torch.no_grad():
-                        policy_output, _ = current_policy_net(state_tensor)  # Unpack the tuple
-                        q_values = policy_output.cpu().numpy().squeeze() 
-
-                    # Find the best legal move
-                    best_q_value = float('-inf')
-                    best_pair = None
-                    for piece, action in legal_piece_actions:
-                        if q_values[action] > best_q_value:
-                            best_q_value = q_values[action]
-                            best_pair = (piece, action)
-                    piece, action = best_pair
-                
-                if turn == 1:
-                    red_count += 1
-                    if len(red_move_history) < 4:
-                        red_move_history.append((piece, action))
-                    elif len(red_move_history) == 4:
-                        red_move_history.pop(0)
-                        red_move_history.append((piece, action))
-                else: 
-                    black_count += 1
-                    if len(black_move_history) < 4:
-                        black_move_history.append((piece, action))
-                    elif len(black_move_history) == 4:
-                        black_move_history.pop(0)
-                        black_move_history.append((piece, action))
-
-                # Take action and observe next state
-                move_history = red_move_history if turn == 1 else black_move_history
-                count = red_count if turn == 1 else black_count
-                next_state, reward, done = piece_move.step(piece, action, turn, move_history, count)
-
-                state = convert_if_memoryview(state)
-                next_state = convert_if_memoryview(next_state)
-
-                # Store transition in appropriate replay buffer
-                if turn == 1:
-                    red_replay_buffer.append((state, action, reward, next_state, done))
-                    total_red_reward += reward
-                else:
-                    black_replay_buffer.append((state, action, reward, next_state, done))
-                    total_black_reward += reward
-
-                # Train the current agent
-                train_dqn(turn)
-
-                # Update state and turn
-                state = next_state
-                turn = 1 - turn  # Switch turns
-                game_count = t
-                if done:
-                    break
-
-            # Decay epsilon
             if EPSILON > EPSILON_MIN:
                 EPSILON *= EPSILON_DECAY
 
-            print(f"Episode {episode}, Red Reward: {total_red_reward}, Black Reward: {total_black_reward}, Move count: {game_count}")
+            if batch_start % 50 == 0:
+                print(f"Batch {batch_start}, EPSILON: {EPSILON}")
 
     except KeyboardInterrupt:
-
+        end_time = time.time()
         red_checkpoint = {
                 'policy_net': red_policy_net.state_dict(),
                 'target_net': red_target_net.state_dict(),
                 'optimizer': red_optimizer.state_dict(),
-                'episode': episode,
+                'batch': batch_start + games_per_batch,
                 'epsilon': EPSILON,
             }
 
@@ -365,7 +375,7 @@ def main():
                 'policy_net': black_policy_net.state_dict(),
                 'target_net': black_target_net.state_dict(),
                 'optimizer': black_optimizer.state_dict(),
-                'episode': episode,
+                'batch': batch_start + games_per_batch,
                 'epsilon': EPSILON,
             }
 
@@ -375,14 +385,15 @@ def main():
         torch.save(red_replay_buffer, "red_replay_buffer.pt")
         torch.save(black_replay_buffer, "black_replay_buffer.pt")
 
-        print(f"Checkpoints saved at episode {episode}")
+        print(f"Checkpoints saved at batch {batch_start + games_per_batch}")
         
-        end_time = time.time()
         running_time = end_time - start_time
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()
+
+
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
