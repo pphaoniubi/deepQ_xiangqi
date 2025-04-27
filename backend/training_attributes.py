@@ -89,18 +89,24 @@ TARGET_UPDATE = 1000
 red_replay_buffer = deque(maxlen=500000)
 black_replay_buffer = deque(maxlen=500000)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
 
-scaler = GradScaler("cuda")
+if device.type == "cuda":
+    scaler = GradScaler()
+else:
+    scaler = None
 
 red_policy_net = XiangqiNet(ACTION_SIZE).to(device)
 red_target_net = XiangqiNet(ACTION_SIZE).to(device)
-red_target_net.load_state_dict(red_policy_net.state_dict())
 red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
 
 black_policy_net = XiangqiNet(ACTION_SIZE).to(device)
 black_target_net = XiangqiNet(ACTION_SIZE).to(device)
-black_target_net.load_state_dict(black_policy_net.state_dict())
 black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
 
 red_checkpoint_path = os.getenv("RED_FILE_PATH")
@@ -118,7 +124,6 @@ def generate_moves(board_state, turn):
     else:
         checkpoint_path = os.getenv("BLACK_FILE_PATH")
         policy_net = black_policy_net
-    print(checkpoint_path)
     
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
@@ -329,14 +334,16 @@ def main():
 
         batch = max(red_checkpoint['batch'], black_checkpoint['batch'])
         EPSILON = max(red_checkpoint['epsilon'], black_checkpoint['epsilon'])
-        print(EPSILON)
 
         print(f"Starting from batch: {batch}")
     else: 
-        red_replay_buffer = deque(maxlen=500000)
-        black_replay_buffer = deque(maxlen=500000)
+        red_replay_buffer = deque(maxlen=100000)
+        black_replay_buffer = deque(maxlen=100000)
         batch = 0
 
+    # get basic info
+    print(f"red_replay_buffer length: {len(red_replay_buffer)}")
+    print(f"device: {device}")
     EPISODES = 800001
     games_per_batch = 14
     start_time = time.time()
@@ -355,8 +362,8 @@ def main():
                 train_dqn(1)   # train red
                 train_dqn(-1)  # train black
 
-            """if EPSILON > EPSILON_MIN:
-                EPSILON *= EPSILON_DECAY"""
+            if EPSILON > EPSILON_MIN:
+                EPSILON *= EPSILON_DECAY
 
             if batch_start % 100 == 0:
                 print(f"Batch {batch_start}, EPSILON: {EPSILON}")
@@ -391,7 +398,7 @@ def main():
         print("\nRunning time:", running_time, "seconds")
 
 
-# main()
+main()
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
