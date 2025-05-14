@@ -86,8 +86,8 @@ EPSILON_DECAY = 0.99991
 LEARNING_RATE = 0.001
 TARGET_UPDATE = 1000
 
-red_replay_buffer = deque(maxlen=500000)
-black_replay_buffer = deque(maxlen=500000)
+red_replay_buffer = deque(maxlen=100000)
+black_replay_buffer = deque(maxlen=100000)
 
 if torch.backends.mps.is_available():
     device = torch.device("mps")
