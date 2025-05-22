@@ -23,13 +23,13 @@ def ucb_score(parent, child, c_puct=1.0):
 def select_child(node):
     return max(node.children.items(), key=lambda item: ucb_score(node, item[1]))
 
-def expand_and_evaluate(node, net, legal_actions_fn, apply_action_fn, device):
+def expand_and_evaluate(node, net, turn, legal_actions_fn, apply_action_fn, device):
     state_tensor = torch.tensor(node.state).float().unsqueeze(0).to(device)
     policy, value = net(state_tensor)
     policy = policy.squeeze(0).detach().cpu().numpy()
     value = value.item()
 
-    legal_actions = legal_actions_fn(node.state)
+    legal_actions = legal_actions_fn(node.state, turn)
     policy = policy * np.isin(np.arange(len(policy)), legal_actions)  # mask illegal
     policy /= np.sum(policy) + 1e-8
 
@@ -45,7 +45,7 @@ def backpropagate(path, value):
         node.value_sum += value
         value = -value  # flip for opponent
 
-def run_mcts(root, net, legal_actions_fn, apply_action_fn, device, simulations=100):
+def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations=100):
     for _ in range(simulations):
         node = root
         path = [node]
@@ -54,7 +54,7 @@ def run_mcts(root, net, legal_actions_fn, apply_action_fn, device, simulations=1
             action, node = select_child(node)
             path.append(node)
 
-        value = expand_and_evaluate(node, net, legal_actions_fn, apply_action_fn, device)
+        value = expand_and_evaluate(node, net, turn, legal_actions_fn, apply_action_fn, device)
         backpropagate(path, value)
 
     return root

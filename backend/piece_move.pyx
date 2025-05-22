@@ -4,6 +4,15 @@ import numpy as np
 cimport numpy as np
 
 
+cpdef int move_to_index(int from_idx, int to_idx):
+    return from_idx * 90 + to_idx
+
+cpdef tuple index_to_move(int index):
+    cdef int from_idx = index // 90
+    cdef int to_idx = index % 90
+    return (from_idx, to_idx)
+
+
 cpdef list generate_all_legal_actions(int turn, object board_1d_obj):
     cdef np.ndarray[np.int32_t, ndim=1] board_np
     cdef int[:] board_1d
@@ -38,13 +47,13 @@ cpdef list generate_all_legal_actions(int turn, object board_1d_obj):
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef str is_winning(int[:] board_1d):
+cpdef int is_terminal(int[:] board_1d):
     if find_piece_1d(-5, board_1d) == -1:
-        return "Red wins"
+        return 1
     elif find_piece_1d(5, board_1d) == -1:
-        return "Black wins"
+        return -1
     else:
-        return "Game continues"
+        return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -268,9 +277,7 @@ cpdef np.ndarray[np.int32_t, ndim=1] get_legal_moves(int piece, int[:] board_1d)
 
         return map_legal_moves_to_actions(np.array(legal_moves, dtype=np.int32).reshape(-1, 2))
 
-
 ctypedef np.int32_t INT32_t
-
 
 cpdef np.ndarray[np.int32_t, ndim=2] encode_1d_board_to_board(int[:] board_1d):
     cdef np.ndarray[np.int32_t, ndim=2] board_2d = np.empty((10, 9), dtype=np.int32)
@@ -307,25 +314,6 @@ cpdef int find_piece_1d(int piece, int[:] board_1d):
         if board_1d[i] == piece:
             return i
     return -1
-
-
-cpdef int get_piece_value(int piece):
-    cdef int abs_piece = abs(piece)
-
-    if abs_piece == 5:  # General
-        return 2000
-    elif abs_piece == 1 or abs_piece == 9:  # Chariots
-        return 700
-    elif abs_piece == 10 or abs_piece == 11:  # Cannons
-        return 650
-    elif abs_piece == 2 or abs_piece == 8:  # Horses
-        return 600
-    elif abs_piece == 3 or abs_piece == 7:  # Elephants
-        return 350
-    elif abs_piece == 4 or abs_piece == 6:  # Advisors
-        return 300
-    else:  # Pawns
-        return 100
 
 
 @cython.boundscheck(False)
@@ -426,11 +414,11 @@ cpdef tuple step(int piece, int new_index, int turn, list move_history, int coun
     cdef str winner
 
     board_1d_input = np.asarray(game.board_1d, dtype=np.int32)
-    board_1d, reward = make_move_1d(piece, new_index, board_1d_input, turn, count, move_history)
+    board_1d, reward = make_move_1d(piece, new_index, board_1d_input)
     game.board_1d = board_1d
 
-    winner = is_winning(board_1d)  # works directly on updated 1D board
-    done = (winner == "Red wins" and turn == 1) or (winner == "Black wins" and turn == 0)
+    winner = is_terminal(board_1d)  # works directly on updated 1D board
+    done = (winner == 1 and turn == 1) or (winner == -1 and turn == -1)
 
     if done and count < 30:
         reward += 3000
@@ -438,59 +426,10 @@ cpdef tuple step(int piece, int new_index, int turn, list move_history, int coun
     return board_1d, reward, done
 
 
-cpdef tuple make_move_1d(int piece, int new_index, int[:] board_1d, int turn, int count, list move_history):
-    cdef int count_penalty = -80 if count > 30 else 0
-    cdef int pattern_penalty = 0
-    cdef int piece_move_count = 0
+cpdef tuple make_move_1d(int piece, int new_index, int[:] board_1d):
     cdef int old_index = find_piece_1d(piece, board_1d)
-    cdef int reward = 0
-    cdef int i, move_piece, move_index
-    cdef int mv_len = len(move_history)
 
-    # Detect repetition pattern
-    if mv_len >= 4:
-        move0 = move_history[0]
-        move1 = move_history[1]
-        move2 = move_history[2]
-        move3 = move_history[3]
-
-        if (move0[0] == move2[0] == piece and
-            move1[0] == move3[0] and
-            move0[1] == move2[1] and
-            move1[1] == move3[1]):
-            pattern_penalty = -200
-
-    # Count how many times this piece has moved
-    for i in range(mv_len):
-        move_piece = move_history[i][0]
-        if move_piece == piece:
-            piece_move_count += 1
-
-    if piece_move_count > 2:
-        pattern_penalty -= 10 * (piece_move_count - 2)
-    if piece_move_count > 5:
-        pattern_penalty -= 30 * (piece_move_count - 2)
-
-    reward += pattern_penalty + count_penalty
-
-    # Reward if capturing
-    if turn == 1:  # red
-        if board_1d[new_index] < 0:
-            reward += get_piece_value(board_1d[new_index])
-    else:          # black
-        if board_1d[new_index] > 0:
-            reward += get_piece_value(board_1d[new_index])
-
-    # Perform the move
     board_1d[old_index] = 0
     board_1d[new_index] = piece
 
-    # Threat and check detection
-    if is_piece_threatened(new_index, board_1d, turn):
-        reward -= 100
-    if is_check(board_1d, turn):
-        reward -= 500
-    if is_check_others(board_1d, turn):
-        reward += 500
-
-    return board_1d, reward  # already a memoryview; no need to wrap
+    return board_1d

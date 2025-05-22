@@ -32,3 +32,6 @@ class game:
         [0, 0, 0, 0, 0, 0, 0, 0, 0],
         [1, 2, 3, 4, 5, 6, 7, 8, 9],
     ]
+
+    def board_init_fn(self):
+        return self.board_1d_init

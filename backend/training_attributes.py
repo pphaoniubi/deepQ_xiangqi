@@ -1,13 +1,15 @@
 import numpy as np
 import torch
+import random
 import torch.nn as nn
 import torch.nn.functional as F
 from dotenv import load_dotenv
 from game_state import game
 import piece_move
-from mcts import MCTSNode
+from mcts import *
 
 load_dotenv()
+game = game()
 
 class XiangqiNet(nn.Module):
     def __init__(self, action_size):
@@ -69,14 +71,16 @@ class XiangqiNet(nn.Module):
 
         return policy, value
     
-def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, get_winner_fn, simulations=800):
-    state = initial_state_fn()
-    game_data = []
-    current_player = 1  # 1 for Red, -1 for Black
 
-    while not is_terminal_fn(state):
+def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=800):
+    state = np.array(initial_state_fn(), dtype=np.int32)
+    game_data = []
+    turn = 1  # 1 for Red, -1 for Black
+    
+
+    while is_terminal_fn(state) == 0:
         root = MCTSNode(state)
-        MCTSNode.run_mcts(root, net, legal_actions_fn, apply_action_fn, device, simulations)
+        run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
 
         # Build MCTS policy π
         visit_counts = {a: child.visit_count for a, child in root.children.items()}
@@ -87,15 +91,15 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
 
         # Save training example
         state_tensor = torch.tensor(state).float().to(device)
-        game_data.append((state_tensor, pi, current_player))
+        game_data.append((state_tensor, pi, turn))
 
         # Choose action to play
         action = np.random.choice(list(visit_counts.keys()), p=[count / total_visits for count in visit_counts.values()])
         state = apply_action_fn(state, action)
-        current_player *= -1
+        turn *= -1
 
     # Assign final value z
-    result = get_winner_fn(state)  # 1 (Red win), -1 (Black win), or 0 (draw)
+    result = is_terminal_fn(state)  # 1 (Red win), -1 (Black win), or 0 (draw)
     training_examples = []
     for s, pi, player in game_data:
         z = result * player
@@ -104,6 +108,67 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
     return training_examples
 
 
+def train_step(net, batch, device, optimizer=None):
+    states, pis, zs = zip(*batch)
+    states = torch.stack(states).to(device)
+    target_pis = torch.stack(pis).to(device)
+    target_zs = torch.tensor(zs).float().to(device)
+
+    pred_pis, pred_zs = net(states)
+    loss_policy = F.cross_entropy(pred_pis, target_pis)
+    loss_value = F.mse_loss(pred_zs.squeeze(), target_zs)
+    loss = loss_policy + loss_value
+
+    if optimizer is None:
+        optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    return loss.item()
+
+
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=800, batch_size=64):
+    replay_buffer = []
+    legal_actions_fn = piece_move.get_legal_moves
+    apply_action_fn = piece_move.make_move_1d
+    initial_state_fn = game.board_init_fn
+    is_terminal_fn = piece_move.is_terminal
+
+    for iteration in range(num_iterations):
+        print(f"\n=== Iteration {iteration} ===")
+
+        # 1. Generate self-play games
+        for _ in range(games_per_iteration):
+            game_data = simulate_game_with_mcts(
+                net, device,
+                legal_actions_fn, apply_action_fn,
+                initial_state_fn, is_terminal_fn,
+                simulations=simulations
+            )
+            replay_buffer.extend(game_data)
+
+        # 2. Optional: keep only the most recent N samples
+        max_buffer_size = 10000
+        if len(replay_buffer) > max_buffer_size:
+            replay_buffer = replay_buffer[-max_buffer_size:]
+
+        # 3. Train the network on random batches
+        for _ in range(10):  # 10 epochs per iteration
+            batch = random.sample(replay_buffer, batch_size)
+            train_step(net, batch, device)
+net = XiangqiNet(action_size=90).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+main_training_loop(
+    net=net,
+    device=device,
+    num_iterations=1000,        # how many total training cycles
+    games_per_iteration=25,     # how many self-play games per cycle
+    simulations=800,            # MCTS simulations per move
+    batch_size=64               # training batch size
+)
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
