@@ -29,7 +29,7 @@ def expand_and_evaluate(node, net, turn, legal_actions_fn, apply_action_fn, devi
     policy = policy.squeeze(0).detach().cpu().numpy()
     value = value.item()
 
-    legal_actions = legal_actions_fn(node.state, turn)
+    legal_actions = legal_actions_fn(turn, node.state)
     policy = policy * np.isin(np.arange(len(policy)), legal_actions)  # mask illegal
     policy /= np.sum(policy) + 1e-8
 

@@ -12,14 +12,27 @@ cpdef tuple index_to_move(int index):
     cdef int to_idx = index % 90
     return (from_idx, to_idx)
 
+cpdef np.ndarray[np.int32_t, ndim=1] apply_action_fn(int[:] board_1d, int action_index):
+    cdef int from_idx = action_index // 90
+    cdef int to_idx = action_index % 90
+    cdef np.ndarray[np.int32_t, ndim=1] new_board = np.empty(90, dtype=np.int32)
+    cdef int i
 
-cpdef list generate_all_legal_actions(int turn, object board_1d_obj):
+    # Copy board content manually for speed and memoryview compatibility
+    for i in range(90):
+        new_board[i] = board_1d[i]
+
+    new_board[to_idx] = board_1d[from_idx]
+    new_board[from_idx] = 0
+
+    return new_board
+    
+cpdef list generate_all_legal_actions_alpha_zero(int turn, object board_1d_obj):
     cdef np.ndarray[np.int32_t, ndim=1] board_np
     cdef int[:] board_1d
     cdef list result = []
-    cdef int piece, i
-    cdef int start, end
-    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
+    cdef int piece, index, from_pos, to_pos
+    cdef np.ndarray[np.int32_t, ndim=1] to_pos_arr
 
     # Validate and convert input
     if not isinstance(board_1d_obj, np.ndarray):
@@ -32,16 +45,22 @@ cpdef list generate_all_legal_actions(int turn, object board_1d_obj):
 
     board_1d = board_np  # this is now safe
 
-    # Turn-specific piece range
-    if turn == 1:
-        start, end = 1, 17
-    else:
-        start, end = -16, 0
+    for index in range(90):
+        piece = board_1d[index]
+        if piece == 0:
+            continue
+        
+        elif turn == 1 and piece > 0:
+            from_pos = index
+            to_pos_arr = get_legal_moves(piece, board_1d)
+            for i in range(to_pos_arr.shape[0]):
+                result.append(move_to_index(from_pos, to_pos_arr[i]))
 
-    for piece in range(start, end):
-        legal_moves = get_legal_moves(piece, board_1d)
-        for i in range(legal_moves.shape[0]):
-            result.append((piece, legal_moves[i]))
+        elif turn == -1 and piece < 0:
+            from_pos = index
+            to_pos_arr = get_legal_moves(piece, board_1d)
+            for i in range(to_pos_arr.shape[0]):
+                result.append(move_to_index(from_pos, to_pos_arr[i]))
 
     return result
     
@@ -68,22 +87,6 @@ cpdef np.ndarray[np.int32_t, ndim=1] map_legal_moves_to_actions(int[:, :] legal_
         index[i] = y * 9 + x
 
     return index
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef np.ndarray[np.int32_t, ndim=2] map_actions_to_legal_moves(np.ndarray[np.int32_t, ndim=1] actions):
-    cdef Py_ssize_t i, n = actions.shape[0]
-    cdef np.ndarray[np.int32_t, ndim=2] moves = np.empty((n, 2), dtype=np.int32)
-    cdef int action, x, y
-
-    for i in range(n):
-        action = actions[i]
-        x = action % 9
-        y = action // 9
-        moves[i, 0] = x
-        moves[i, 1] = y
-
-    return moves
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

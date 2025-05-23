@@ -15,6 +15,8 @@ class XiangqiNet(nn.Module):
     def __init__(self, action_size):
         super(XiangqiNet, self).__init__()
 
+        self.policy_output_size = action_size
+
         # Initial Convolutional Block
         self.conv1 = nn.Conv2d(1, 128, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(128)
@@ -131,8 +133,8 @@ def train_step(net, batch, device, optimizer=None):
 
 def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=800, batch_size=64):
     replay_buffer = []
-    legal_actions_fn = piece_move.get_legal_moves
-    apply_action_fn = piece_move.make_move_1d
+    legal_actions_fn = piece_move.generate_all_legal_actions_alpha_zero
+    apply_action_fn = piece_move.apply_action_fn
     initial_state_fn = game.board_init_fn
     is_terminal_fn = piece_move.is_terminal
 
@@ -140,7 +142,8 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
         print(f"\n=== Iteration {iteration} ===")
 
         # 1. Generate self-play games
-        for _ in range(games_per_iteration):
+        for g in range(games_per_iteration):
+            print(f"game: {g}")
             game_data = simulate_game_with_mcts(
                 net, device,
                 legal_actions_fn, apply_action_fn,
@@ -158,7 +161,9 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
         for _ in range(10):  # 10 epochs per iteration
             batch = random.sample(replay_buffer, batch_size)
             train_step(net, batch, device)
-net = XiangqiNet(action_size=90).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+
+net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 main_training_loop(
