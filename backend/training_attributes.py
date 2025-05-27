@@ -61,7 +61,7 @@ class XiangqiNet(nn.Module):
 
         # Policy Head
         policy = F.relu(self.policy_bn1(self.policy_conv1(x)))
-        policy = F.relu(self.policy_bn2(self.policy_conv2(policy)))
+        policy = self.policy_bn2(self.policy_conv2(policy))  # ← no ReLU here
         policy = policy.view(batch_size, -1)
         policy = F.softmax(self.policy_fc(policy), dim=1)
 
