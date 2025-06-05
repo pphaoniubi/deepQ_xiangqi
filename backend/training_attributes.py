@@ -78,9 +78,11 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
     state = np.array(initial_state_fn(), dtype=np.int32)
     game_data = []
     turn = 1  # 1 for Red, -1 for Black
+    move_count = 0
+    max_move = 160
     
 
-    while is_terminal_fn(state) == 0:
+    while is_terminal_fn(state) == 0  and move_count < max_move:
         root = MCTSNode(state)
         run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
 
@@ -88,6 +90,7 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
         visit_counts = {a: child.visit_count for a, child in root.children.items()}
         total_visits = sum(visit_counts.values())
         pi = np.zeros(net.policy_output_size)
+
         for a, count in visit_counts.items():
             pi[a] = count / total_visits
 
@@ -99,6 +102,12 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
         action = np.random.choice(list(visit_counts.keys()), p=[count / total_visits for count in visit_counts.values()])
         state = apply_action_fn(state, action)
         turn *= -1
+        move_count += 1
+
+        # Determine final result
+        result = is_terminal_fn(state)
+        if move_count >= max_move and result == 0:
+            result = 0  # or treat it as a draw
 
     # Assign final value z
     result = is_terminal_fn(state)  # 1 (Red win), -1 (Black win), or 0 (draw)

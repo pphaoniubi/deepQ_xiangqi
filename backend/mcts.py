@@ -77,6 +77,9 @@ def backpropagate(path, value):
 def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations=100):
     leaf_nodes = []
 
+    if not root.children:
+        expand_node(root, turn, legal_actions_fn, apply_action_fn)
+
     for _ in range(simulations):
         node = root
         path = [node]
@@ -91,3 +94,9 @@ def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulat
     expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device)
 
     return root
+
+def expand_node(node, turn, legal_actions_fn, apply_action_fn):
+    legal_actions = legal_actions_fn(turn, node.state)
+    for action in legal_actions:
+        next_state = apply_action_fn(node.state, action)
+        node.children[action] = MCTSNode(state=next_state, parent=node, prior=action)
