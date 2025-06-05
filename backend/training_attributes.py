@@ -72,7 +72,21 @@ class XiangqiNet(nn.Module):
         value = torch.tanh(self.value_fc2(value))
 
         return policy, value
-    
+
+
+def save_training_state(filename, net, replay_buffer, iteration):
+    torch.save({
+        'model_state_dict': net.state_dict(),
+        'replay_buffer': replay_buffer,
+        'iteration': iteration
+    }, filename)
+
+def load_training_state(filename, net):
+    checkpoint = torch.load(filename)
+    net.load_state_dict(checkpoint['model_state_dict'])
+    replay_buffer = checkpoint['replay_buffer']
+    iteration = checkpoint['iteration']
+    return replay_buffer, iteration
 
 def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=800):
     state = np.array(initial_state_fn(), dtype=np.int32)
@@ -141,13 +155,20 @@ def train_step(net, batch, device, optimizer=None):
 
 
 def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=800, batch_size=64):
-    replay_buffer = []
     legal_actions_fn = piece_move.generate_all_legal_actions_alpha_zero
     apply_action_fn = piece_move.apply_action_fn
     initial_state_fn = game.board_init_fn
     is_terminal_fn = piece_move.is_terminal
 
-    for iteration in range(num_iterations):
+    try:
+        replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
+        print(f"Resuming from iteration {start_iteration}")
+    except FileNotFoundError:
+        print("No checkpoint found. Starting fresh.")
+        replay_buffer = []
+        start_iteration = 0
+
+    for iteration in range(start_iteration, num_iterations):
         print(f"\n=== Iteration {iteration} ===")
 
         # 1. Generate self-play games
@@ -171,7 +192,11 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
             batch = random.sample(replay_buffer, batch_size)
             train_step(net, batch, device)
 
+        # 4. Save checkpoint every 5 iterations
+        if iteration % 5 == 0:
+            save_training_state("checkpoint.pth", net, replay_buffer, iteration)
 
+            
 net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
