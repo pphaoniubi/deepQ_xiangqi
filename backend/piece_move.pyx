@@ -2,7 +2,9 @@ from game_state import game
 cimport cython
 import numpy as np
 cimport numpy as np
+from libc.math cimport exp, sqrt
 
+np.import_array()
 
 cpdef int move_to_index(int from_idx, int to_idx):
     return from_idx * 90 + to_idx
@@ -319,95 +321,61 @@ cpdef int find_piece_1d(int piece, int[:] board_1d):
     return -1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef bint is_piece_threatened(int index, int[:] board_1d, int turn):
-    cdef int target_index = index
-    cdef int piece, move_index
-    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
-    cdef Py_ssize_t i, n
 
-    # Determine opponent pieces
-    if turn == 1:
-        opponent_pieces = range(-16, 0)
-    else:
-        opponent_pieces = range(1, 17)
-
-    # Check if any opponent move threatens the target index
-    for piece in opponent_pieces:
-        legal_moves = get_legal_moves(piece, board_1d)  # must return np.ndarray[int32, ndim=1]
-        n = legal_moves.shape[0]
-        for i in range(n):
-            move_index = legal_moves[i]
-            if move_index == target_index:
-                return True
-
-    return False
-
+cdef double EPSILON = 1e-8
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef bint is_check(int[:] board_1d, int turn):
-    cdef int general
-    cdef int general_position_1d
-    cdef int piece, move_index
-    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
-    cdef Py_ssize_t i, n
-
-    # Select the general based on turn
-    general = 5 if turn == 1 else -5
-
-    # Find general's position (1D)
-    general_position_1d = find_piece_1d(general, board_1d)
-    if general_position_1d == -1:
-        return False  # General not found
-
-    # Define opponent pieces
-    if turn == 1:
-        opponent_pieces = range(-16, 0)
-    else:
-        opponent_pieces = range(1, 17)
-
-    for piece in opponent_pieces:
-        legal_moves = get_legal_moves(piece, board_1d)
-        n = legal_moves.shape[0]
-        for i in range(n):
-            move_index = legal_moves[i]
-            if move_index == general_position_1d:
-                return True
-
-    return False
-
+cpdef double ucb_score(int parent_visits, double child_value, double child_prior, int child_visits, double c_puct=1.0):
+    cdef double u_value
+    u_value = c_puct * child_prior * sqrt(parent_visits) / (1.0 + child_visits)
+    return child_value + u_value
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef bint is_check_others(int[:] board_1d, int turn):
-    cdef int general
-    cdef int general_position_1d
-    cdef int piece, move_index
-    cdef np.ndarray[np.int32_t, ndim=1] legal_moves
-    cdef Py_ssize_t i, n
+cpdef int select_child(dict children, int parent_visits, dict values, dict priors, dict visit_counts, double c_puct=1.0):
+    cdef double best_score = -1e9
+    cdef int best_action = -1
+    cdef double score
+    cdef int a
+    for a in children:
+        score = ucb_score(
+            parent_visits,
+            values[a],
+            priors[a],
+            visit_counts[a],
+            c_puct
+        )
+        if score > best_score:
+            best_score = score
+            best_action = a
+    return best_action
 
-    if turn == 1:
-        ally_pieces = range(1, 17)
-        general = -5  # opponent's general
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef np.ndarray masked_softmax(np.ndarray logits, np.ndarray legal_actions):
+    cdef int i
+    cdef int action
+    cdef int size = logits.shape[0]
+    cdef np.ndarray[np.float32_t, ndim=1] exp_logits = np.zeros(size, dtype=np.float32)
+    cdef float max_logit = np.max(logits)
+    cdef float sum_exp = 0.0
+
+    for i in range(legal_actions.shape[0]):
+        action = legal_actions[i]
+        exp_logits[action] = exp(logits[action] - max_logit)
+        sum_exp += exp_logits[action]
+
+    if sum_exp < EPSILON:
+        # Fallback to uniform
+        for i in range(legal_actions.shape[0]):
+            exp_logits[legal_actions[i]] = 1.0 / legal_actions.shape[0]
     else:
-        ally_pieces = range(-16, 0)
-        general = 5
+        for i in range(legal_actions.shape[0]):
+            action = legal_actions[i]
+            exp_logits[action] /= sum_exp
 
-    general_position_1d = find_piece_1d(general, board_1d)
-    if general_position_1d == -1:
-        return False  # general not found
-
-    for piece in ally_pieces:
-        legal_moves = get_legal_moves(piece, board_1d)
-        n = legal_moves.shape[0]
-        for i in range(n):
-            move_index = legal_moves[i]
-            if move_index == general_position_1d:
-                return True
-
-    return False
+    return exp_logits
 
 
 cpdef tuple step(int piece, int new_index, int turn, list move_history, int count):

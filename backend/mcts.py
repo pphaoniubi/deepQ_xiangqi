@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+import piece_move
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
@@ -13,15 +14,6 @@ class MCTSNode:
 
     def value(self):
         return 0 if self.visit_count == 0 else self.value_sum / self.visit_count
-
-def ucb_score(parent, child, c_puct=1.0):
-    prior = child.prior
-    q_value = child.value()
-    u_value = c_puct * prior * np.sqrt(parent.visit_count) / (1 + child.visit_count)
-    return q_value + u_value
-
-def select_child(node):
-    return max(node.children.items(), key=lambda item: ucb_score(node, item[1]))
 
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
     # 1. Prepare batched state tensor
@@ -45,20 +37,8 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
     for (node, path), logits, value in zip(leaf_nodes, policy_logits, values):
         legal_actions = legal_actions_fn(turn, node.state)
 
-        # Softmax over logits
-        max_logit = np.max(logits)  # for numerical stability
-        exp_logits = np.exp(logits - max_logit)
-        mask = np.zeros_like(exp_logits)
-        mask[legal_actions] = 1
-        exp_logits *= mask
+        probs = piece_move.masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
 
-        sum_exp = np.sum(exp_logits)
-        if sum_exp == 0:
-            print("Masked softmax is all zero. Falling back to uniform.")
-            probs = np.zeros_like(logits)
-            probs[legal_actions] = 1 / len(legal_actions)
-        else:
-            probs = exp_logits / sum_exp
 
         # Store children
         for a in legal_actions:
@@ -85,7 +65,23 @@ def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulat
         path = [node]
 
         while node.children:
-            action, node = select_child(node)
+            # Build flat dicts for Cython input
+            values = {a: child.value() for a, child in node.children.items()}
+            priors = {a: child.prior for a, child in node.children.items()}
+            visit_counts = {a: child.visit_count for a, child in node.children.items()}
+
+            # Call Cython-accelerated selection
+            action = piece_move.select_child(
+                node.children,
+                node.visit_count,
+                values,
+                priors,
+                visit_counts,
+                c_puct=1.0  # you can make this tunable
+            )
+
+            # Get selected child
+            node = node.children[action]
             path.append(node)
 
         leaf_nodes.append((node, path))
