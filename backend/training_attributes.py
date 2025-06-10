@@ -93,20 +93,32 @@ def load_training_state(filename, net):
 
 
 def simulate_one_game(args):
-    net_state_dict, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations = args
+    from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
+    from piece_move import apply_action_fn
+    from piece_move import is_terminal as is_terminal_fn
 
+    board_init_fn = game.board_init_fn
+
+    net_state_dict, device, simulations, game_idx = args
+
+    print(f"Starting game {game_idx}")
+    
     # Rebuild the model inside the subprocess
     net = XiangqiNet(action_size=8100)
-    net.load_state_dict(net_state_dict)  # ✅ Correct: load state_dict, not model
+    net.load_state_dict(net_state_dict)
     net.eval()
     net.to(torch.device("cpu"))
 
-    return simulate_game_with_mcts(
+    game_data =  simulate_game_with_mcts(
         net, torch.device("cpu"),  # device should match `.to(cpu)`
         legal_actions_fn, apply_action_fn,
-        initial_state_fn, is_terminal_fn,
+        board_init_fn, is_terminal_fn,
         simulations=simulations
     )
+
+    print(f"Finished game {game_idx}")
+
+    return game_data
 
 def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=800):
     state = np.array(initial_state_fn(), dtype=np.int32)
@@ -138,13 +150,14 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
         turn *= -1
         move_count += 1
 
-        # Determine final result
-        result = is_terminal_fn(state)
-        if move_count >= max_move and result == 0:
-            result = 0  # or treat it as a draw
+    # Determine final result
+    result = is_terminal_fn(state)
 
     # Assign final value z
     result = is_terminal_fn(state)  # 1 (Red win), -1 (Black win), or 0 (draw)
+    if move_count > max_move:
+        result = 0
+    
     training_examples = []
     for s, pi, player in game_data:
         z = result * player
@@ -174,12 +187,7 @@ def train_step(net, batch, device, optimizer=None):
     return loss.item()
 
 
-def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=800, batch_size=64):
-    legal_actions_fn = piece_move.generate_all_legal_actions_alpha_zero
-    apply_action_fn = piece_move.apply_action_fn
-    initial_state_fn = game.board_init_fn
-    is_terminal_fn = piece_move.is_terminal
-
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=8, batch_size=64):
     try:
         replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
         print(f"Resuming from iteration {start_iteration}")
@@ -195,8 +203,8 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
         with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
             net_state_dict = net.cpu().state_dict()
             args = [
-                (net_state_dict, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations)
-                for _ in range(games_per_iteration)
+                (net_state_dict, device, simulations, i)
+                for i in range(games_per_iteration)
             ]
             results = executor.map(simulate_one_game, args)
 
@@ -228,10 +236,11 @@ if __name__ == "__main__":
         device=device,
         num_iterations=1000,        # how many total training cycles
         games_per_iteration=25,     # how many self-play games per cycle
-        simulations=800,            # MCTS simulations per move
+        simulations=8,            # MCTS simulations per move
         batch_size=64               # training batch size
     )
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload
+# python3.9 setup.py build_ext --inplace

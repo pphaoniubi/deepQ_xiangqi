@@ -5,15 +5,24 @@ import piece_move
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
-        self.state = state
-        self.parent = parent
-        self.children = {}
+        self.state = state              # e.g., a NumPy array representing the board
+        self.parent = parent            # parent MCTSNode
+        self.children = {}             # action -> child MCTSNode
         self.visit_count = 0
-        self.value_sum = 0
-        self.prior = prior
+        self.value_sum = 0.0
+        self.prior = prior             # prior probability from the policy network
 
     def value(self):
-        return 0 if self.visit_count == 0 else self.value_sum / self.visit_count
+        if self.visit_count == 0:
+            return 0.0
+        return self.value_sum / self.visit_count
+
+def backpropagate(path, value):
+    for node in reversed(path):
+        node.visit_count += 1
+        node.value_sum += value
+        value = -value  # Switch perspective for alternating turns
+
 
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
     # 1. Prepare batched state tensor
@@ -47,12 +56,6 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
 
         backpropagate(path, value.item())
 
-
-def backpropagate(path, value):
-    for node in reversed(path):
-        node.visit_count += 1
-        node.value_sum += value
-        value = -value  # flip for opponent
 
 def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations=100):
     leaf_nodes = []

@@ -378,25 +378,6 @@ cpdef np.ndarray masked_softmax(np.ndarray logits, np.ndarray legal_actions):
     return exp_logits
 
 
-cpdef tuple step(int piece, int new_index, int turn, list move_history, int count):
-    cdef int[:] board_1d, board_1d_input
-    cdef int reward
-    cdef bint done
-    cdef str winner
-
-    board_1d_input = np.asarray(game.board_1d, dtype=np.int32)
-    board_1d, reward = make_move_1d(piece, new_index, board_1d_input)
-    game.board_1d = board_1d
-
-    winner = is_terminal(board_1d)  # works directly on updated 1D board
-    done = (winner == 1 and turn == 1) or (winner == -1 and turn == -1)
-
-    if done and count < 30:
-        reward += 3000
-
-    return board_1d, reward, done
-
-
 cpdef tuple make_move_1d(int piece, int new_index, int[:] board_1d):
     cdef int old_index = find_piece_1d(piece, board_1d)
 
