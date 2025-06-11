@@ -326,33 +326,6 @@ cdef double EPSILON = 1e-8
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef double ucb_score(int parent_visits, double child_value, double child_prior, int child_visits, double c_puct=1.0):
-    cdef double u_value
-    u_value = c_puct * child_prior * sqrt(parent_visits) / (1.0 + child_visits)
-    return child_value + u_value
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef int select_child(dict children, int parent_visits, dict values, dict priors, dict visit_counts, double c_puct=1.0):
-    cdef double best_score = -1e9
-    cdef int best_action = -1
-    cdef double score
-    cdef int a
-    for a in children:
-        score = ucb_score(
-            parent_visits,
-            values[a],
-            priors[a],
-            visit_counts[a],
-            c_puct
-        )
-        if score > best_score:
-            best_score = score
-            best_action = a
-    return best_action
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef np.ndarray masked_softmax(np.ndarray logits, np.ndarray legal_actions):
     cdef int i
     cdef int action

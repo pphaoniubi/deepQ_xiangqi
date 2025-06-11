@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import piece_move
+import math
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
@@ -23,6 +24,16 @@ def backpropagate(path, value):
         node.value_sum += value
         value = -value  # Switch perspective for alternating turns
 
+def masked_softmax(logits, legal_actions):
+    mask = np.full_like(logits, fill_value=-np.inf)
+    mask[legal_actions] = logits[legal_actions]
+    
+    # Subtract max for numerical stability
+    max_val = np.max(mask[legal_actions])
+    exps = np.exp(mask - max_val)
+    exps[~np.isfinite(exps)] = 0.0  # ensure masked values stay zero
+    sum_exps = np.sum(exps)
+    return exps / sum_exps if sum_exps > 0 else np.zeros_like(logits)
 
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
     # 1. Prepare batched state tensor
@@ -46,7 +57,7 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
     for (node, path), logits, value in zip(leaf_nodes, policy_logits, values):
         legal_actions = legal_actions_fn(turn, node.state)
 
-        probs = piece_move.masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
+        probs = masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
 
 
         # Store children
@@ -56,8 +67,32 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
 
         backpropagate(path, value.item())
 
+def ucb_score(parent_visits, value, prior, visit_count, c_puct=1.0):
+    if visit_count == 0:
+        return float('inf')  # ensures every child is visited at least once
+    q = value
+    u = c_puct * prior * math.sqrt(parent_visits) / (1 + visit_count)
+    return q + u
 
-def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations=100):
+def select_child(children, parent_visits, values, priors, visit_counts, c_puct=1.0):
+    best_score = float('-inf')
+    best_action = None
+
+    for action in children:
+        score = ucb_score(
+            parent_visits,
+            values[action],
+            priors[action],
+            visit_counts[action],
+            c_puct
+        )
+        if score > best_score:
+            best_score = score
+            best_action = action
+
+    return best_action
+
+def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations=8):
     leaf_nodes = []
 
     if not root.children:
@@ -74,7 +109,7 @@ def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulat
             visit_counts = {a: child.visit_count for a, child in node.children.items()}
 
             # Call Cython-accelerated selection
-            action = piece_move.select_child(
+            action = select_child(
                 node.children,
                 node.visit_count,
                 values,

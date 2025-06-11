@@ -110,7 +110,7 @@ def simulate_one_game(args):
     net.to(torch.device("cpu"))
 
     game_data =  simulate_game_with_mcts(
-        net, torch.device("cpu"),  # device should match `.to(cpu)`
+        net, torch.device("cpu"),
         legal_actions_fn, apply_action_fn,
         board_init_fn, is_terminal_fn,
         simulations=simulations
@@ -120,7 +120,7 @@ def simulate_one_game(args):
 
     return game_data
 
-def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=800):
+def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=8):
     state = np.array(initial_state_fn(), dtype=np.int32)
     game_data = []
     turn = 1  # 1 for Red, -1 for Black
