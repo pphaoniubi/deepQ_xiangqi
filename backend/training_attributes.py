@@ -4,7 +4,7 @@ import random
 import torch.nn as nn
 import torch.nn.functional as F
 from dotenv import load_dotenv
-from game_state import game
+from game import game
 import piece_move
 from mcts import *
 import concurrent.futures
@@ -96,8 +96,7 @@ def simulate_one_game(args):
     from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
     from piece_move import apply_action_fn
     from piece_move import is_terminal as is_terminal_fn
-
-    board_init_fn = game.board_init_fn
+    from game import board_init_fn
 
     net_state_dict, device, simulations, game_idx = args
 
@@ -123,7 +122,7 @@ def simulate_one_game(args):
 def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=8):
     state = np.array(initial_state_fn(), dtype=np.int32)
     game_data = []
-    turn = 1  # 1 for Red, -1 for Black
+    turn = 1
     move_count = 0
     max_move = 160
     
@@ -154,7 +153,7 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
     result = is_terminal_fn(state)
 
     # Assign final value z
-    result = is_terminal_fn(state)  # 1 (Red win), -1 (Black win), or 0 (draw)
+    result = is_terminal_fn(state)
     if move_count > max_move:
         result = 0
     
@@ -234,10 +233,10 @@ if __name__ == "__main__":
     main_training_loop(
         net=net,
         device=device,
-        num_iterations=1000,        # how many total training cycles
-        games_per_iteration=25,     # how many self-play games per cycle
-        simulations=8,            # MCTS simulations per move
-        batch_size=64               # training batch size
+        num_iterations=1000,
+        games_per_iteration=25,
+        simulations=8,
+        batch_size=64
     )
 
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython

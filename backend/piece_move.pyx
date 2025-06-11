@@ -1,4 +1,4 @@
-from game_state import game
+from game import game
 cimport cython
 import numpy as np
 cimport numpy as np
