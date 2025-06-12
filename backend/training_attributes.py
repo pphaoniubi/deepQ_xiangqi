@@ -5,10 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dotenv import load_dotenv
 from game import game
-import piece_move
 from mcts import *
 import concurrent.futures
 import multiprocessing as mp
+import time
 
 load_dotenv()
 game = game()
@@ -82,7 +82,7 @@ def save_training_state(filename, net, replay_buffer, iteration):
         'replay_buffer': replay_buffer,
         'iteration': iteration
     }, filename)
-    print(f"saved at {iteration}")
+    print(f"saved at iteration {iteration}")
 
 def load_training_state(filename, net):
     checkpoint = torch.load(filename)
@@ -106,10 +106,10 @@ def simulate_one_game(args):
     net = XiangqiNet(action_size=8100)
     net.load_state_dict(net_state_dict)
     net.eval()
-    net.to(torch.device("cpu"))
+    net.to(device)
 
-    game_data =  simulate_game_with_mcts(
-        net, torch.device("cpu"),
+    game_data = simulate_game_with_mcts(
+        net, device,
         legal_actions_fn, apply_action_fn,
         board_init_fn, is_terminal_fn,
         simulations=simulations
@@ -186,7 +186,7 @@ def train_step(net, batch, device, optimizer=None):
     return loss.item()
 
 
-def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25, simulations=8, batch_size=64):
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
     try:
         replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
         print(f"Resuming from iteration {start_iteration}")
@@ -210,6 +210,8 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
             for game_data in results:
                 replay_buffer.extend(game_data)
 
+        net.to(device)
+
         # 2. Optional: keep only the most recent N samples
         max_buffer_size = 10000
         if len(replay_buffer) > max_buffer_size:
@@ -220,8 +222,7 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=25,
             batch = random.sample(replay_buffer, batch_size)
             train_step(net, batch, device)
 
-        # 4. Save checkpoint every 5 iterations
-        if iteration % 2 == 0 and iteration != 0:
+        if iteration != 0:
             save_training_state("checkpoint.pth", net, replay_buffer, iteration)
 
             
@@ -229,16 +230,22 @@ net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_avail
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
+    start_time = time.time()
+    
     mp.set_start_method("spawn", force=True)
     main_training_loop(
         net=net,
         device=device,
         num_iterations=1000,
-        games_per_iteration=25,
-        simulations=8,
+        games_per_iteration=50,
+        simulations=800,
         batch_size=64
     )
 
+    end_time = time.time()
+    elapsed = end_time - start_time
+
+    print(f"Elapsed time: {elapsed:.2f} seconds")
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload
