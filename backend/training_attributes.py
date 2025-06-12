@@ -230,22 +230,28 @@ net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_avail
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
-    start_time = time.time()
     
-    mp.set_start_method("spawn", force=True)
-    main_training_loop(
-        net=net,
-        device=device,
-        num_iterations=1000,
-        games_per_iteration=50,
-        simulations=800,
-        batch_size=64
-    )
+    start_time = time.time()
 
-    end_time = time.time()
-    elapsed = end_time - start_time
-
-    print(f"Elapsed time: {elapsed:.2f} seconds")
+    try:
+        mp.set_start_method("spawn", force=True)
+        main_training_loop(
+            net=net,
+            device=device,
+            num_iterations=1000,
+            games_per_iteration=50,
+            simulations=800,
+            batch_size=64
+        )
+    except KeyboardInterrupt:
+        print("\nTraining interrupted by user (Ctrl + C).")
+    finally:
+        end_time = time.time()
+        elapsed = end_time - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+        print(f"Elapsed time: {minutes} min {seconds} sec")
+        
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload
