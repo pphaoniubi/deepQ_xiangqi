@@ -1,24 +1,23 @@
-from collections import deque
 import numpy as np
-import random
 import torch
+import random
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.amp import autocast, GradScaler
 from dotenv import load_dotenv
-from game_state import game
-import os
+from game import game
+from mcts import *
+import concurrent.futures
+import multiprocessing as mp
 import time
-import piece_move
-from concurrent.futures import ThreadPoolExecutor
-from collections import deque
 
 load_dotenv()
+game = game()
 
 class XiangqiNet(nn.Module):
     def __init__(self, action_size):
         super(XiangqiNet, self).__init__()
+
+        self.policy_output_size = action_size
 
         # Initial Convolutional Block
         self.conv1 = nn.Conv2d(1, 128, kernel_size=3, padding=1)
@@ -64,7 +63,7 @@ class XiangqiNet(nn.Module):
 
         # Policy Head
         policy = F.relu(self.policy_bn1(self.policy_conv1(x)))
-        policy = F.relu(self.policy_bn2(self.policy_conv2(policy)))
+        policy = self.policy_bn2(self.policy_conv2(policy))  # ← no ReLU here
         policy = policy.view(batch_size, -1)
         policy = F.softmax(self.policy_fc(policy), dim=1)
 
@@ -76,330 +75,178 @@ class XiangqiNet(nn.Module):
 
         return policy, value
 
-STATE_SIZE = 90
-ACTION_SIZE = 90
-BATCH_SIZE = 256
-GAMMA = 0.99
-EPSILON = 1.0
-EPSILON_MIN = 0.05
-EPSILON_DECAY = 0.99991
-LEARNING_RATE = 0.001
-TARGET_UPDATE = 1000
 
-red_replay_buffer = deque(maxlen=100000)
-black_replay_buffer = deque(maxlen=100000)
+def save_training_state(filename, net, replay_buffer, iteration):
+    torch.save({
+        'model_state_dict': net.state_dict(),
+        'replay_buffer': replay_buffer,
+        'iteration': iteration
+    }, filename)
+    print(f"saved at iteration {iteration}")
 
-if torch.backends.mps.is_available():
-    device = torch.device("mps")
-elif torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
+def load_training_state(filename, net):
+    checkpoint = torch.load(filename)
+    net.load_state_dict(checkpoint['model_state_dict'])
+    replay_buffer = checkpoint['replay_buffer']
+    iteration = checkpoint['iteration']
+    return replay_buffer, iteration
 
-if device.type == "cuda":
-    scaler = GradScaler()
-else:
-    scaler = None
 
-red_policy_net = XiangqiNet(ACTION_SIZE).to(device)
-red_target_net = XiangqiNet(ACTION_SIZE).to(device)
-red_optimizer = optim.Adam(red_policy_net.parameters(), lr=LEARNING_RATE)
+def simulate_one_game(args):
+    from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
+    from piece_move import apply_action_fn
+    from piece_move import is_terminal as is_terminal_fn
+    from game import board_init_fn
 
-black_policy_net = XiangqiNet(ACTION_SIZE).to(device)
-black_target_net = XiangqiNet(ACTION_SIZE).to(device)
-black_optimizer = optim.Adam(black_policy_net.parameters(), lr=LEARNING_RATE)
+    net_state_dict, device, simulations, game_idx = args
 
-red_checkpoint_path = os.getenv("RED_FILE_PATH")
-black_checkpoint_path = os.getenv("BLACK_FILE_PATH")
-
-def convert_if_memoryview(x):
-    if "_memoryviewslice" in str(type(x)) or isinstance(x, memoryview):
-        return np.array(x, dtype=np.int32, copy=True)
-    return x
-
-def generate_moves(board_state, turn):
-    if turn == 1:
-        checkpoint_path = os.getenv("RED_FILE_PATH")
-        policy_net = red_policy_net
-    else:
-        checkpoint_path = os.getenv("BLACK_FILE_PATH")
-        policy_net = black_policy_net
+    print(f"Starting game {game_idx}")
     
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+    # Rebuild the model inside the subprocess
+    net = XiangqiNet(action_size=8100)
+    net.load_state_dict(net_state_dict)
+    net.eval()
+    net.to(device)
 
-    checkpoint = torch.load(checkpoint_path)
-    batch = checkpoint['batch']
-    print(f"Using {'red' if turn == 1 else 'black'} agent at batch: {batch}")
+    game_data = simulate_game_with_mcts(
+        net, device,
+        legal_actions_fn, apply_action_fn,
+        board_init_fn, is_terminal_fn,
+        simulations=simulations
+    )
+
+    print(f"Finished game {game_idx}")
+
+    return game_data
+
+def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, initial_state_fn, is_terminal_fn, simulations=8):
+    state = np.array(initial_state_fn(), dtype=np.int32)
+    game_data = []
+    turn = 1
+    move_count = 0
+    max_move = 160
     
-    # Load the trained policy network
-    policy_net.load_state_dict(checkpoint['policy_net'])
-    policy_net.eval()
+
+    while is_terminal_fn(state) == 0  and move_count < max_move:
+        root = MCTSNode(state)
+        run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
+
+        # Build MCTS policy π
+        visit_counts = {a: child.visit_count for a, child in root.children.items()}
+        total_visits = sum(visit_counts.values())
+        pi = np.zeros(net.policy_output_size)
+
+        for a, count in visit_counts.items():
+            pi[a] = count / total_visits
+
+        # Save training example
+        state_tensor = torch.tensor(state).float().to(device)
+        game_data.append((state_tensor, pi, turn))
+
+        # Choose action to play
+        action = np.random.choice(list(visit_counts.keys()), p=[count / total_visits for count in visit_counts.values()])
+        state = apply_action_fn(state, action)
+        turn *= -1
+        move_count += 1
+
+    # Determine final result
+    result = is_terminal_fn(state)
+
+    # Assign final value z
+    result = is_terminal_fn(state)
+    if move_count > max_move:
+        result = 0
     
-    print("AI Model Loaded. Generating best move...")
+    training_examples = []
+    for s, pi, player in game_data:
+        z = result * player
+        training_examples.append((s, torch.tensor(pi), torch.tensor(z, dtype=torch.float32)))
 
-    # Convert board state to tensor
-    state_tensor = torch.tensor(board_state, dtype=torch.float32).unsqueeze(0).to(device)
-
-    # Get Q-values for all possible actions
-    with torch.no_grad():
-        policy_output, _ = policy_net(state_tensor)  # Unpack the tuple (policy, value)
-        q_values = policy_output.cpu().numpy().squeeze()
-
-    # Generate list of all legal (piece, action) pairs
-    piece_range = range(1, 17) if turn == 1 else range(-16, 0)
-    legal_piece_actions = []
-    board_state = piece_move.encode_board_to_1d_board(board_state)
-    board_state_np = np.array(board_state, dtype=np.int32)
-    for piece in piece_range:
-        legal_action_indices = piece_move.get_legal_moves(piece, board_state_np)
-        for action in legal_action_indices:
-            legal_piece_actions.append((piece, action))
-
-    if not legal_piece_actions:
-        print("No valid moves found!")
-        return None, None
-
-    best_q_value = -float('inf')
-    best_pair = None
-    for piece, action in legal_piece_actions:
-        if q_values[action] > best_q_value:
-            best_q_value = q_values[action]
-            best_pair = (piece, action)
-
-    if best_pair:
-        piece, action = best_pair
-        moves = piece_move.map_actions_to_legal_moves(np.array([action], dtype=np.int32))
-        moves = moves[0].tolist()
-        moves = moves[::-1]         # reverse elements
-
-        print(f"AI selected piece {piece} with move {moves}")
-        return piece, moves
-    else:
-        print("No valid move found!")
-        return None, None
+    return training_examples
 
 
-def train_dqn(turn):
-    """Train the appropriate network based on the current turn."""
+def train_step(net, batch, device, optimizer=None):
+    states, pis, zs = zip(*batch)
+    states = torch.stack(states).to(device)
+    target_pis = torch.stack(pis).to(device)
+    target_zs = torch.tensor(zs).float().to(device)
 
-    if turn == 1:  # Red's turn
-        if len(red_replay_buffer) < BATCH_SIZE:
-            return
-        batch = random.sample(red_replay_buffer, BATCH_SIZE)
-        policy_net = red_policy_net
-        target_net = red_target_net
-        optimizer = red_optimizer
-    else:  # Black's turn
-        if len(black_replay_buffer) < BATCH_SIZE:
-            return
-        batch = random.sample(black_replay_buffer, BATCH_SIZE)
-        policy_net = black_policy_net
-        target_net = black_target_net
-        optimizer = black_optimizer
+    pred_pis, pred_zs = net(states)
+    loss_policy = F.cross_entropy(pred_pis, target_pis)
+    loss_value = F.mse_loss(pred_zs.squeeze(), target_zs)
+    loss = loss_policy + loss_value
 
-    # Unpack batch
-    states, actions, rewards, next_states, dones = zip(*batch)
-
-    # Convert to numpy arrays efficiently
-    states_np = np.stack(states).astype(np.float32)
-    next_states_np = np.stack(next_states).astype(np.float32)
-    actions_np = np.array(actions, dtype=np.int64)
-    rewards_np = np.array(rewards, dtype=np.float32).reshape(-1, 1)
-    dones_np = np.array(dones, dtype=np.float32).reshape(-1, 1)
-
-    # Move to GPU as tensors
-    states_tensor = torch.from_numpy(states_np).to(device)
-    next_states_tensor = torch.from_numpy(next_states_np).to(device)
-    actions_tensor = torch.from_numpy(actions_np).unsqueeze(1).to(device)
-    rewards_tensor = torch.from_numpy(rewards_np).to(device)
-    dones_tensor = torch.from_numpy(dones_np).to(device)
-
-    # Training mode
-    policy_net.train()
-
-    with autocast("cuda"):  # Mixed precision
-        policy_output, _ = policy_net(states_tensor)
-        current_q_values = policy_output.gather(1, actions_tensor)
-
-        with torch.no_grad():
-            target_net.eval()
-            next_policy_output, _ = target_net(next_states_tensor)
-            next_q_values = next_policy_output.max(1, keepdim=True)[0]
-            target_q_values = rewards_tensor + (GAMMA * next_q_values * (1 - dones_tensor))
-
-        loss = F.smooth_l1_loss(current_q_values, target_q_values)
+    if optimizer is None:
+        optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 
     optimizer.zero_grad()
-    scaler.scale(loss).backward()
-    scaler.step(optimizer)
-    scaler.update()
+    loss.backward()
+    optimizer.step()
+
+    return loss.item()
 
 
-def simulate_game(game_id, red_policy_net, black_policy_net, red_replay_buffer, black_replay_buffer, device):
-    global EPSILON
-    game.board_1d = game.board_1d_init
-    state = game.board_1d
-    red_count = 0
-    black_count = 0
-    turn = 1
-    total_red_reward = 0
-    total_black_reward = 0
-    red_move_history = []
-    black_move_history = []
-
-    for t in range(160):
-        current_policy_net = red_policy_net if turn == 1 else black_policy_net
-
-        board_1d_np = np.array(state, dtype=np.int32)
-        legal_piece_actions = piece_move.generate_all_legal_actions(turn, board_1d_np)
-
-        if not legal_piece_actions:
-            break
-
-        if random.random() < EPSILON:
-            piece, action = random.choice(legal_piece_actions)
-        else:
-            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
-            with torch.no_grad():
-                policy_output, _ = current_policy_net(state_tensor)
-                q_values = policy_output.cpu().numpy().squeeze()
-
-            best_q_value = float('-inf')
-            best_pair = None
-            for p, a in legal_piece_actions:
-                if q_values[a] > best_q_value:
-                    best_q_value = q_values[a]
-                    best_pair = (p, a)
-            piece, action = best_pair
-
-        if turn == 1:
-            red_count += 1
-            if len(red_move_history) < 4:
-                red_move_history.append((piece, action))
-            elif len(red_move_history) == 4:
-                red_move_history.pop(0)
-                red_move_history.append((piece, action))
-        else: 
-            black_count += 1
-            if len(black_move_history) < 4:
-                black_move_history.append((piece, action))
-            elif len(black_move_history) == 4:
-                black_move_history.pop(0)
-                black_move_history.append((piece, action))
-
-        move_history = red_move_history if turn == 1 else black_move_history 
-        count = red_count if turn == 1 else black_count
-        next_state, reward, done = piece_move.step(piece, action, turn, move_history, count)
-
-        state = convert_if_memoryview(state)
-        next_state = convert_if_memoryview(next_state)
-
-        # Store transition
-        if turn == 1:
-            red_replay_buffer.append((state, action, reward, next_state, done))
-            total_red_reward += reward
-        else:
-            black_replay_buffer.append((state, action, reward, next_state, done))
-            total_black_reward += reward
-
-        state = next_state
-        turn = 1 - turn
-
-        if done:
-            break
-
-    return total_red_reward, total_black_reward
-
-
-def main():
-    global EPSILON
-
-    # initialize networks, optimizers, etc.
-    if os.path.exists(red_checkpoint_path) and os.path.exists(black_checkpoint_path) \
-    and os.path.exists("red_replay_buffer.pt") and os.path.exists("black_replay_buffer.pt"):
-        red_checkpoint = torch.load(red_checkpoint_path)
-        black_checkpoint = torch.load(black_checkpoint_path)
-        
-        red_replay_buffer = torch.load("red_replay_buffer.pt", weights_only=False)
-        black_replay_buffer = torch.load("black_replay_buffer.pt", weights_only=False)
-
-        red_policy_net.load_state_dict(red_checkpoint['policy_net'])
-        red_target_net.load_state_dict(red_checkpoint['target_net'])
-        red_optimizer.load_state_dict(red_checkpoint['optimizer'])
-
-        black_policy_net.load_state_dict(black_checkpoint['policy_net'])
-        black_target_net.load_state_dict(black_checkpoint['target_net'])
-        black_optimizer.load_state_dict(black_checkpoint['optimizer'])
-
-        batch = max(red_checkpoint['batch'], black_checkpoint['batch'])
-        EPSILON = max(red_checkpoint['epsilon'], black_checkpoint['epsilon'])
-
-        print(f"Starting from batch: {batch}")
-    else: 
-        red_replay_buffer = deque(maxlen=100000)
-        black_replay_buffer = deque(maxlen=100000)
-        batch = 0
-
-    # get basic info
-    print(f"red_replay_buffer length: {len(red_replay_buffer)}")
-    print(f"device: {device}")
-    EPISODES = 800001
-    games_per_batch = 14
-    start_time = time.time()
-
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
     try:
-        for batch_start in range(batch, EPISODES, games_per_batch):
-            with ThreadPoolExecutor(max_workers=games_per_batch) as executor:
-                futures = [
-                    executor.submit(simulate_game, game_id, red_policy_net, black_policy_net, red_replay_buffer, black_replay_buffer, device)
-                    for game_id in range(games_per_batch)
-                ]
-                results = [future.result() for future in futures]
+        replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
+        print(f"Resuming from iteration {start_iteration}")
+    except FileNotFoundError:
+        print("No checkpoint found. Starting fresh.")
+        replay_buffer = []
+        start_iteration = 0
 
-            # After batch of games
-            for _ in range(games_per_batch):
-                train_dqn(1)   # train red
-                train_dqn(-1)  # train black
+    for iteration in range(start_iteration, num_iterations):
+        print(f"\n=== Iteration {iteration} ===")
 
-            if EPSILON > EPSILON_MIN:
-                EPSILON *= EPSILON_DECAY
+        # 1. Generate self-play games
+        with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+            net_state_dict = net.cpu().state_dict()
+            args = [
+                (net_state_dict, device, simulations, i)
+                for i in range(games_per_iteration)
+            ]
+            results = executor.map(simulate_one_game, args)
 
-            if batch_start % 100 == 0:
-                print(f"Batch {batch_start}, EPSILON: {EPSILON}")
+            for game_data in results:
+                replay_buffer.extend(game_data)
 
-    except KeyboardInterrupt:
-        end_time = time.time()
-        red_checkpoint = {
-                'policy_net': red_policy_net.state_dict(),
-                'target_net': red_target_net.state_dict(),
-                'optimizer': red_optimizer.state_dict(),
-                'batch': batch_start + games_per_batch,
-                'epsilon': EPSILON,
-            }
+        net.to(device)
 
-        black_checkpoint = {
-                'policy_net': black_policy_net.state_dict(),
-                'target_net': black_target_net.state_dict(),
-                'optimizer': black_optimizer.state_dict(),
-                'batch': batch_start + games_per_batch,
-                'epsilon': EPSILON,
-            }
+        # 2. Optional: keep only the most recent N samples
+        max_buffer_size = 10000
+        if len(replay_buffer) > max_buffer_size:
+            replay_buffer = replay_buffer[-max_buffer_size:]
 
-        torch.save(red_checkpoint, "red_checkpoint.pth")
-        torch.save(black_checkpoint, "black_checkpoint.pth")
+        # 3. Train the network on random batches
+        for _ in range(10):  # 10 epochs per iteration
+            batch = random.sample(replay_buffer, batch_size)
+            train_step(net, batch, device)
 
-        torch.save(red_replay_buffer, "red_replay_buffer.pt")
-        torch.save(black_replay_buffer, "black_replay_buffer.pt")
+        if iteration != 0:
+            save_training_state("checkpoint.pth", net, replay_buffer, iteration)
 
-        print(f"Checkpoints saved at batch {batch_start + games_per_batch}")
-        
-        running_time = end_time - start_time
-        print("\nRunning time:", running_time, "seconds")
+            
+net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+if __name__ == "__main__":
+    start_time = time.time()
+    
+    mp.set_start_method("spawn", force=True)
+    main_training_loop(
+        net=net,
+        device=device,
+        num_iterations=1000,
+        games_per_iteration=50,
+        simulations=800,
+        batch_size=64
+    )
 
-main()
+    end_time = time.time()
+    elapsed = end_time - start_time
 
+    print(f"Elapsed time: {elapsed:.2f} seconds")
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload
+# python3.9 setup.py build_ext --inplace

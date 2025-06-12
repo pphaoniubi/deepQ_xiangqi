@@ -1,4 +1,4 @@
-from game_state import game
+from backend.game import game
 import piece_move
 
 def draw_board(board):
