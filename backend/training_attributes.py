@@ -91,7 +91,6 @@ def load_training_state(filename, net):
     iteration = checkpoint['iteration']
     return replay_buffer, iteration
 
-
 def simulate_one_game(args):
     from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
     from piece_move import apply_action_fn
@@ -126,7 +125,6 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
     move_count = 0
     max_move = 160
     
-
     while is_terminal_fn(state) == 0  and move_count < max_move:
         root = MCTSNode(state)
         run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
@@ -185,6 +183,27 @@ def train_step(net, batch, device, optimizer=None):
 
     return loss.item()
 
+def select_move_with_mcts(board_state, net, device, simulations, legal_actions_fn):
+    root = MCTSNode(board_state)
+
+    for _ in range(simulations):
+        node = root.select()  # select with UCT
+        state_tensor = piece_move.encode_board(node.state).unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            policy_logits, value = net(state_tensor)
+        priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
+
+        legal_actions = legal_actions_fn(node.state)
+        priors_masked = torch.zeros_like(priors)
+        priors_masked[legal_actions] = priors[legal_actions]
+
+        node.expand(priors_masked)
+        node.backpropagate(value.item())
+
+    # Choose the action with the highest visit count
+    best_action = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
+    return best_action
 
 def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
     try:

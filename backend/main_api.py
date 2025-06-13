@@ -95,7 +95,7 @@ def get_turn(request: BoardRequest):
  
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
-    AI_moves = training_attributes.generate_moves(request.board, request.turn)
+    AI_moves = training_attributes.select_move_with_mcts(request.board, request.turn)
     
     if AI_moves == (None, None):
         return {"AI_moves": []}
