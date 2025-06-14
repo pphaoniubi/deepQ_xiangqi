@@ -182,28 +182,54 @@ def train_step(net, batch, device, optimizer=None):
     optimizer.step()
 
     return loss.item()
+def select_move_with_mcts(board_state_1d, turn):
+    root = MCTSNode(board_state_1d)
 
-def select_move_with_mcts(board_state, net, device, simulations, legal_actions_fn):
-    root = MCTSNode(board_state)
+    simulations = 800
 
+    # Manually expand root first
+    state_tensor = torch.tensor(root.state, dtype=torch.float32).unsqueeze(0).to(device)
+    with torch.no_grad():
+        policy_logits, value = net(state_tensor)
+    priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
+
+    board_np = np.array(root.state, dtype=np.int32).reshape(-1)
+    print(turn, board_np)
+    legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
+    priors_masked = torch.zeros_like(priors)
+    priors_masked[legal_actions] = priors[legal_actions]
+
+    if len(legal_actions) > 0:
+        root.expand(priors_masked)
+    root.backpropagate(value.item())  # Optional, if you want root to start with value
+
+    # Now start simulations
     for _ in range(simulations):
-        node = root.select()  # select with UCT
-        state_tensor = piece_move.encode_board(node.state).unsqueeze(0).to(device)
+        node = root
 
+        # Selection phase
+        while node.children:
+            node = node.select()
+
+        # Expansion & Evaluation
+        state_tensor = torch.tensor(root.state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
             policy_logits, value = net(state_tensor)
         priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
 
-        legal_actions = legal_actions_fn(node.state)
+        legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, node.state)
         priors_masked = torch.zeros_like(priors)
         priors_masked[legal_actions] = priors[legal_actions]
 
-        node.expand(priors_masked)
+        if len(legal_actions) > 0:
+            node.expand(priors_masked)
+
         node.backpropagate(value.item())
 
-    # Choose the action with the highest visit count
+    # Choose move with highest visit count
     best_action = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
     return best_action
+
 
 def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
     try:
@@ -254,14 +280,14 @@ if __name__ == "__main__":
 
     try:
         mp.set_start_method("spawn", force=True)
-        main_training_loop(
+        """main_training_loop(
             net=net,
             device=device,
             num_iterations=1000,
             games_per_iteration=50,
             simulations=800,
             batch_size=64
-        )
+        )"""
     except KeyboardInterrupt:
         print("\nTraining interrupted by user (Ctrl + C).")
     finally:

@@ -17,6 +17,18 @@ class MCTSNode:
         if self.visit_count == 0:
             return 0.0
         return self.value_sum / self.visit_count
+    
+    def select(self):
+        # Select child with highest UCT value
+        best_score = -float('inf')
+        best_child = None
+        for action, child in self.children.items():
+            uct_score = child.q_value / (child.visit_count + 1e-5) + \
+                        child.prior * (math.sqrt(self.visit_count) / (1 + child.visit_count))
+            if uct_score > best_score:
+                best_score = uct_score
+                best_child = child
+        return best_child
 
 def backpropagate(path, value):
     for node in reversed(path):
