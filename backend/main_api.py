@@ -74,7 +74,7 @@ def flip_turn(request: BoardRequest):
     print(request.username)
     connection = get_db_connection()
     with connection.cursor() as cursor:
-        turn =  1 - request.turn
+        turn =  request.turn * -1
         cursor.execute("UPDATE games SET turn = %s WHERE username = %s", (turn, request.username))
         connection.commit()
 
@@ -96,11 +96,17 @@ def get_turn(request: BoardRequest):
 @app.post("/get_ai_moves")
 def get_ai_moves(request: BoardRequest):
     AI_moves = training_attributes.select_move_with_mcts(request.board, request.turn)
-    
+    AI_moves = piece_move.index_to_move(AI_moves)
+    board_1d = piece_move.encode_board_to_1d_board(request.board)
+    piece = board_1d[AI_moves[0]]
+    dest_x = AI_moves[1] % 9
+    dest_y = AI_moves[1] // 9
+    print(piece, dest_x, dest_y)
+
     if AI_moves == (None, None):
         return {"AI_moves": []}
 
-    return {"AI_moves": AI_moves}
+    return {"AI_moves": (int(piece), (int(dest_y), int(dest_x)))}
 
 
 @app.post("/is_check")

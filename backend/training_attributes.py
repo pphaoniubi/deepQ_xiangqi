@@ -182,6 +182,7 @@ def train_step(net, batch, device, optimizer=None):
     optimizer.step()
 
     return loss.item()
+
 def select_move_with_mcts(board_state_1d, turn):
     root = MCTSNode(board_state_1d)
 
@@ -196,6 +197,7 @@ def select_move_with_mcts(board_state_1d, turn):
     board_np = np.array(root.state, dtype=np.int32).reshape(-1)
     print(turn, board_np)
     legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
+    print(legal_actions)
     priors_masked = torch.zeros_like(priors)
     priors_masked[legal_actions] = priors[legal_actions]
 
@@ -217,7 +219,8 @@ def select_move_with_mcts(board_state_1d, turn):
             policy_logits, value = net(state_tensor)
         priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
 
-        legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, node.state)
+        board_np = np.array(root.state, dtype=np.int32).reshape(-1)
+        legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
         priors_masked = torch.zeros_like(priors)
         priors_masked[legal_actions] = priors[legal_actions]
 

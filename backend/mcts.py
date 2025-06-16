@@ -19,16 +19,49 @@ class MCTSNode:
         return self.value_sum / self.visit_count
     
     def select(self):
-        # Select child with highest UCT value
         best_score = -float('inf')
         best_child = None
+
         for action, child in self.children.items():
-            uct_score = child.q_value / (child.visit_count + 1e-5) + \
-                        child.prior * (math.sqrt(self.visit_count) / (1 + child.visit_count))
+            # Compute average value safely
+            if child.visit_count > 0:
+                q_value = child.value_sum / child.visit_count
+            else:
+                q_value = 0.0
+
+            # UCT/PUCT score
+            uct_score = q_value + child.prior * (math.sqrt(self.visit_count) / (1 + child.visit_count))
+
             if uct_score > best_score:
                 best_score = uct_score
                 best_child = child
+
         return best_child
+    
+    def expand(self, priors_masked):
+        legal_actions = torch.nonzero(priors_masked).flatten().tolist()
+        for action in legal_actions:
+            if not isinstance(self.state, list):
+                board_2d = self.state.tolist()
+                if not np.array(board_2d).shape == (90,):
+                    board_1d = piece_move.encode_board_to_1d_board(board_2d)
+                else:
+                    board_1d = board_2d
+            else:
+                board_1d = piece_move.encode_board_to_1d_board(self.state)
+
+            next_state = piece_move.apply_action_fn(np.array(board_1d, dtype=np.int32), action)  # <- You must define this function
+            self.children[action] = MCTSNode(
+                state=next_state,
+                parent=self,
+                prior=priors_masked[action].item()
+            )
+
+    def backpropagate(self, value):
+        self.visit_count += 1
+        self.value_sum += value  # accumulate the value
+        if self.parent:
+            self.parent.backpropagate(-value) 
 
 def backpropagate(path, value):
     for node in reversed(path):
