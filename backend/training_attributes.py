@@ -89,7 +89,7 @@ def load_training_state(filename, net):
     net.load_state_dict(checkpoint['model_state_dict'])
     replay_buffer = checkpoint['replay_buffer']
     iteration = checkpoint['iteration']
-    return replay_buffer, iteration
+    return replay_buffer, iteration + 1
 
 def simulate_one_game(args):
     from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
@@ -234,7 +234,7 @@ def select_move_with_mcts(board_state_1d, turn):
     return best_action
 
 
-def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=800, batch_size=64):
     try:
         replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
         print(f"Resuming from iteration {start_iteration}")
@@ -247,7 +247,7 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
         print(f"\n=== Iteration {iteration} ===")
 
         # 1. Generate self-play games
-        with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=7) as executor:
             net_state_dict = net.cpu().state_dict()
             args = [
                 (net_state_dict, device, simulations, i)
@@ -283,14 +283,14 @@ if __name__ == "__main__":
 
     try:
         mp.set_start_method("spawn", force=True)
-        """main_training_loop(
+        main_training_loop(
             net=net,
             device=device,
             num_iterations=1000,
             games_per_iteration=50,
             simulations=800,
             batch_size=64
-        )"""
+        )
     except KeyboardInterrupt:
         print("\nTraining interrupted by user (Ctrl + C).")
     finally:
