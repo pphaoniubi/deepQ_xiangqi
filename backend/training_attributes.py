@@ -248,9 +248,9 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
         start_iteration = 0
 
     for iteration in range(start_iteration, num_iterations):
+        start_time = time.time()
         print(f"\n=== Iteration {iteration} ===")
 
-        # 1. Generate self-play games
         with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
             net_state_dict = net.cpu().state_dict()
             args = [
@@ -264,21 +264,28 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
 
         net.to(device)
 
-        # 2. Optional: keep only the most recent N samples
+        # keep only the most recent N samples
         max_buffer_size = 10000
         if len(replay_buffer) > max_buffer_size:
             replay_buffer = replay_buffer[-max_buffer_size:]
 
-        # 3. Train the network on random batches
+        # Train the network on random batches
         for _ in range(10):  # 10 epochs per iteration
             batch = random.sample(replay_buffer, batch_size)
             train_step(net, batch, device)
 
         if iteration != 0:
-            end_iteration = iteration
             save_training_state("checkpoint.pth", net, replay_buffer, iteration)
+        
+        end_iteration = iteration + 1
+        end_time = time.time()
+        elapsed = end_time - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+    
+        print(f"Iteration time: {minutes} min {seconds} sec")
 
-            
+
 net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -303,9 +310,10 @@ if __name__ == "__main__":
         elapsed = end_time - start_time
         minutes = int(elapsed // 60)
         seconds = int(elapsed % 60)
-        print("number of iterations: ", end_iteration - start_iteration)
+        num_of_iteration = end_iteration - start_iteration
+        print(f"number of iterations: {num_of_iteration}")
         print(f"Elapsed time: {minutes} min {seconds} sec")
-        
+        print(f"average time per iteration: {elapsed / num_of_iteration}")
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload

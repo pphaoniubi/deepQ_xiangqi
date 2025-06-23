@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import piece_move
 import math
+import piece_move
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
@@ -69,17 +70,6 @@ def backpropagate(path, value):
         node.value_sum += value
         value = -value  # Switch perspective for alternating turns
 
-def masked_softmax(logits, legal_actions):
-    mask = np.full_like(logits, fill_value=-np.inf)
-    mask[legal_actions] = logits[legal_actions]
-    
-    # Subtract max for numerical stability
-    max_val = np.max(mask[legal_actions])
-    exps = np.exp(mask - max_val)
-    exps[~np.isfinite(exps)] = 0.0  # ensure masked values stay zero
-    sum_exps = np.sum(exps)
-    return exps / sum_exps if sum_exps > 0 else np.zeros_like(logits)
-
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
     # 1. Prepare batched state tensor
     states = []
@@ -102,8 +92,7 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
     for (node, path), logits, value in zip(leaf_nodes, policy_logits, values):
         legal_actions = legal_actions_fn(turn, node.state)
 
-        probs = masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
-
+        probs = piece_move.masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
 
         # Store children
         for a in legal_actions:
