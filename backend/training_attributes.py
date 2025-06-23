@@ -195,9 +195,9 @@ def select_move_with_mcts(board_state_1d, turn):
     priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
 
     board_np = np.array(root.state, dtype=np.int32).reshape(-1)
-    print(turn, board_np)
+
     legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
-    print(legal_actions)
+
     priors_masked = torch.zeros_like(priors)
     priors_masked[legal_actions] = priors[legal_actions]
 
@@ -236,8 +236,12 @@ def select_move_with_mcts(board_state_1d, turn):
 
 def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=800, batch_size=64):
     try:
+        global start_iteration
+        global end_iteration
         replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
+        end_iteration = start_iteration
         print(f"Resuming from iteration {start_iteration}")
+
     except FileNotFoundError:
         print("No checkpoint found. Starting fresh.")
         replay_buffer = []
@@ -247,7 +251,7 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
         print(f"\n=== Iteration {iteration} ===")
 
         # 1. Generate self-play games
-        with concurrent.futures.ProcessPoolExecutor(max_workers=7) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
             net_state_dict = net.cpu().state_dict()
             args = [
                 (net_state_dict, device, simulations, i)
@@ -271,6 +275,7 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
             train_step(net, batch, device)
 
         if iteration != 0:
+            end_iteration = iteration
             save_training_state("checkpoint.pth", net, replay_buffer, iteration)
 
             
@@ -298,6 +303,7 @@ if __name__ == "__main__":
         elapsed = end_time - start_time
         minutes = int(elapsed // 60)
         seconds = int(elapsed % 60)
+        print("number of iterations: ", end_iteration - start_iteration)
         print(f"Elapsed time: {minutes} min {seconds} sec")
         
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
