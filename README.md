@@ -1,5 +1,5 @@
-TODO:
-AI performance dashboard
+**TODO:** <br>
+**AI performance dashboard**
 
 **ReactJS/Python**
 
