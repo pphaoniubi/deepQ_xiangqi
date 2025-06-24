@@ -1,5 +1,6 @@
 **TODO:** <br>
 **AI performance dashboard**
+**frontend touch up**
 
 **ReactJS/Python**
 
