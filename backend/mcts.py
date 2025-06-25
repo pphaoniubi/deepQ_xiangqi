@@ -62,7 +62,7 @@ class MCTSNode:
         self.visit_count += 1
         self.value_sum += value  # accumulate the value
         if self.parent:
-            self.parent.backpropagate(-value) 
+            self.parent.backpropagate(-value)
 
 def backpropagate(path, value):
     for node in reversed(path):

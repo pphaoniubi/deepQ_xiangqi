@@ -314,6 +314,7 @@ if __name__ == "__main__":
         print(f"number of iterations: {num_of_iteration}")
         print(f"Elapsed time: {minutes} min {seconds} sec")
         print(f"average time per iteration: {elapsed / num_of_iteration}")
+        
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload

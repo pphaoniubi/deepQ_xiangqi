@@ -337,7 +337,6 @@ cpdef int find_piece_1d(int piece, int[:] board_1d):
     return -1
 
 
-
 cdef double EPSILON = 1e-8
 
 @cython.boundscheck(False)
