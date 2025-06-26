@@ -89,8 +89,7 @@ def load_training_state(filename, net):
     net.load_state_dict(checkpoint['model_state_dict'])
     replay_buffer = checkpoint['replay_buffer']
     iteration = checkpoint['iteration']
-    return replay_buffer, iteration
-
+    return replay_buffer, iteration + 1
 
 def simulate_one_game(args):
     from piece_move import generate_all_legal_actions_alpha_zero as legal_actions_fn
@@ -126,7 +125,6 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
     move_count = 0
     max_move = 160
     
-
     while is_terminal_fn(state) == 0  and move_count < max_move:
         root = MCTSNode(state)
         run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
@@ -185,20 +183,74 @@ def train_step(net, batch, device, optimizer=None):
 
     return loss.item()
 
+def select_move_with_mcts(board_state_1d, turn):
+    root = MCTSNode(board_state_1d)
 
-def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=8, batch_size=64):
+    simulations = 800
+
+    # Manually expand root first
+    state_tensor = torch.tensor(root.state, dtype=torch.float32).unsqueeze(0).to(device)
+    with torch.no_grad():
+        policy_logits, value = net(state_tensor)
+    priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
+
+    board_np = np.array(root.state, dtype=np.int32).reshape(-1)
+
+    legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
+
+    priors_masked = torch.zeros_like(priors)
+    priors_masked[legal_actions] = priors[legal_actions]
+
+    if len(legal_actions) > 0:
+        root.expand(priors_masked)
+    root.backpropagate(value.item())  # Optional, if you want root to start with value
+
+    # Now start simulations
+    for _ in range(simulations):
+        node = root
+
+        # Selection phase
+        while node.children:
+            node = node.select()
+
+        # Expansion & Evaluation
+        state_tensor = torch.tensor(root.state, dtype=torch.float32).unsqueeze(0).to(device)
+        with torch.no_grad():
+            policy_logits, value = net(state_tensor)
+        priors = torch.softmax(policy_logits.squeeze(0).cpu(), dim=0)
+
+        board_np = np.array(root.state, dtype=np.int32).reshape(-1)
+        legal_actions = piece_move.generate_all_legal_actions_alpha_zero(turn, board_np)
+        priors_masked = torch.zeros_like(priors)
+        priors_masked[legal_actions] = priors[legal_actions]
+
+        if len(legal_actions) > 0:
+            node.expand(priors_masked)
+
+        node.backpropagate(value.item())
+
+    # Choose move with highest visit count
+    best_action = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
+    return best_action
+
+
+def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50, simulations=800, batch_size=64):
     try:
+        global start_iteration
+        global end_iteration
         replay_buffer, start_iteration = load_training_state("checkpoint.pth", net)
+        end_iteration = start_iteration
         print(f"Resuming from iteration {start_iteration}")
+
     except FileNotFoundError:
         print("No checkpoint found. Starting fresh.")
         replay_buffer = []
         start_iteration = 0
 
     for iteration in range(start_iteration, num_iterations):
+        start_time = time.time()
         print(f"\n=== Iteration {iteration} ===")
 
-        # 1. Generate self-play games
         with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
             net_state_dict = net.cpu().state_dict()
             args = [
@@ -212,40 +264,57 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
 
         net.to(device)
 
-        # 2. Optional: keep only the most recent N samples
+        # keep only the most recent N samples
         max_buffer_size = 10000
         if len(replay_buffer) > max_buffer_size:
             replay_buffer = replay_buffer[-max_buffer_size:]
 
-        # 3. Train the network on random batches
+        # Train the network on random batches
         for _ in range(10):  # 10 epochs per iteration
             batch = random.sample(replay_buffer, batch_size)
             train_step(net, batch, device)
 
         if iteration != 0:
             save_training_state("checkpoint.pth", net, replay_buffer, iteration)
+        
+        end_iteration = iteration + 1
+        end_time = time.time()
+        elapsed = end_time - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+    
+        print(f"Iteration time: {minutes} min {seconds} sec")
 
-            
+
 net = XiangqiNet(action_size=8100).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
-    start_time = time.time()
     
-    mp.set_start_method("spawn", force=True)
-    main_training_loop(
-        net=net,
-        device=device,
-        num_iterations=1000,
-        games_per_iteration=50,
-        simulations=800,
-        batch_size=64
-    )
+    start_time = time.time()
 
-    end_time = time.time()
-    elapsed = end_time - start_time
-
-    print(f"Elapsed time: {elapsed:.2f} seconds")
+    try:
+        mp.set_start_method("spawn", force=True)
+        main_training_loop(
+            net=net,
+            device=device,
+            num_iterations=1000,
+            games_per_iteration=50,
+            simulations=800,
+            batch_size=64
+        )
+    except KeyboardInterrupt:
+        print("\nTraining interrupted by user (Ctrl + C).")
+    finally:
+        end_time = time.time()
+        elapsed = end_time - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+        num_of_iteration = end_iteration - start_iteration
+        print(f"number of iterations: {num_of_iteration}")
+        print(f"Elapsed time: {minutes} min {seconds} sec")
+        print(f"average time per iteration: {elapsed / num_of_iteration}")
+        
 # pip install numpy python-dotenv FastAPi pymysql uvicorn cryptography Cython
 # python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
 # uvicorn main_api:app --reload

@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import piece_move
 import math
+import piece_move
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
@@ -17,23 +18,57 @@ class MCTSNode:
         if self.visit_count == 0:
             return 0.0
         return self.value_sum / self.visit_count
+    
+    def select(self):
+        best_score = -float('inf')
+        best_child = None
+
+        for action, child in self.children.items():
+            # Compute average value safely
+            if child.visit_count > 0:
+                q_value = child.value_sum / child.visit_count
+            else:
+                q_value = 0.0
+
+            # UCT/PUCT score
+            uct_score = q_value + child.prior * (math.sqrt(self.visit_count) / (1 + child.visit_count))
+
+            if uct_score > best_score:
+                best_score = uct_score
+                best_child = child
+
+        return best_child
+    
+    def expand(self, priors_masked):
+        legal_actions = torch.nonzero(priors_masked).flatten().tolist()
+        for action in legal_actions:
+            if not isinstance(self.state, list):
+                board_2d = self.state.tolist()
+                if not np.array(board_2d).shape == (90,):
+                    board_1d = piece_move.encode_board_to_1d_board(board_2d)
+                else:
+                    board_1d = board_2d
+            else:
+                board_1d = piece_move.encode_board_to_1d_board(self.state)
+
+            next_state = piece_move.apply_action_fn(np.array(board_1d, dtype=np.int32), action)  # <- You must define this function
+            self.children[action] = MCTSNode(
+                state=next_state,
+                parent=self,
+                prior=priors_masked[action].item()
+            )
+
+    def backpropagate(self, value):
+        self.visit_count += 1
+        self.value_sum += value  # accumulate the value
+        if self.parent:
+            self.parent.backpropagate(-value)
 
 def backpropagate(path, value):
     for node in reversed(path):
         node.visit_count += 1
         node.value_sum += value
         value = -value  # Switch perspective for alternating turns
-
-def masked_softmax(logits, legal_actions):
-    mask = np.full_like(logits, fill_value=-np.inf)
-    mask[legal_actions] = logits[legal_actions]
-    
-    # Subtract max for numerical stability
-    max_val = np.max(mask[legal_actions])
-    exps = np.exp(mask - max_val)
-    exps[~np.isfinite(exps)] = 0.0  # ensure masked values stay zero
-    sum_exps = np.sum(exps)
-    return exps / sum_exps if sum_exps > 0 else np.zeros_like(logits)
 
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
     # 1. Prepare batched state tensor
@@ -57,8 +92,7 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
     for (node, path), logits, value in zip(leaf_nodes, policy_logits, values):
         legal_actions = legal_actions_fn(turn, node.state)
 
-        probs = masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
-
+        probs = piece_move.masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
 
         # Store children
         for a in legal_actions:
