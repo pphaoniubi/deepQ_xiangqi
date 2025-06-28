@@ -9,6 +9,9 @@ from mcts import *
 import concurrent.futures
 import multiprocessing as mp
 import time
+import csv
+import os
+
 
 load_dotenv()
 game = game()
@@ -74,7 +77,6 @@ class XiangqiNet(nn.Module):
         value = torch.tanh(self.value_fc2(value))
 
         return policy, value
-
 
 def save_training_state(filename, net, replay_buffer, iteration):
     torch.save({
@@ -162,18 +164,31 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
 
     return training_examples
 
-
 def train_step(net, batch, device, optimizer=None):
     states, pis, zs = zip(*batch)
     states = torch.stack(states).to(device)
-    target_pis = torch.stack(pis).to(device)
+    target_pis = torch.stack(pis).to(device)  # [B, num_actions]
     target_zs = torch.tensor(zs).float().to(device)
 
-    pred_pis, pred_zs = net(states)
-    loss_policy = F.cross_entropy(pred_pis, target_pis)
+    pred_logits, pred_zs = net(states)  # pred_logits: [B, num_actions]
+    
+    pred_log_probs = F.log_softmax(pred_logits, dim=1)
+    pred_probs = pred_log_probs.exp()  # convert to probs
+
+    # ---- Compute policy loss ----
+    loss_policy = F.kl_div(pred_log_probs, target_pis, reduction='batchmean')
+
+    # ---- Compute value loss ----
     loss_value = F.mse_loss(pred_zs.squeeze(), target_zs)
+
+    # ---- Total loss ----
     loss = loss_policy + loss_value
 
+    # ---- Compute policy entropy ----
+    eps = 1e-8
+    policy_entropy = - (pred_probs * (pred_probs + eps).log()).sum(dim=1).mean().item()
+
+    # ---- Update ----
     if optimizer is None:
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 
@@ -181,7 +196,8 @@ def train_step(net, batch, device, optimizer=None):
     loss.backward()
     optimizer.step()
 
-    return loss.item()
+    return loss.item(), loss_policy.item(), loss_value.item(), policy_entropy
+    
 
 def select_move_with_mcts(board_state_1d, turn):
     root = MCTSNode(board_state_1d)
@@ -269,10 +285,20 @@ def main_training_loop(net, device, num_iterations=1000, games_per_iteration=50,
         if len(replay_buffer) > max_buffer_size:
             replay_buffer = replay_buffer[-max_buffer_size:]
 
+        log_file = 'training_log.csv'
+        if not os.path.exists(log_file):
+            with open(log_file, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Iteration', 'Total Loss', 'Policy Loss', 'Value Loss', 'policy_entropy'])
+
         # Train the network on random batches
-        for _ in range(10):  # 10 epochs per iteration
+        for i in range(10):  # 10 epochs per iteration
             batch = random.sample(replay_buffer, batch_size)
-            train_step(net, batch, device)
+            loss, loss_policy, loss_value, policy_entropy = train_step(net, batch, device)
+
+            with open(log_file, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([iteration * games_per_iteration + i, loss, loss_policy, loss_value, policy_entropy])
 
         if iteration != 0:
             save_training_state("checkpoint.pth", net, replay_buffer, iteration)
@@ -299,7 +325,7 @@ if __name__ == "__main__":
             net=net,
             device=device,
             num_iterations=1000,
-            games_per_iteration=50,
+            games_per_iteration=5,
             simulations=800,
             batch_size=64
         )
