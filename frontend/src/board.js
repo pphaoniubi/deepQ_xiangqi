@@ -152,7 +152,7 @@ const Board = () => {
     { headers: { "Content-Type": "application/json" }}
     );
 
-    if (turnResponse.data.turn === 0) {
+    if (turnResponse.data.turn === -1) {
       console.log("AI's turn!");
       // console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
       return;
@@ -213,7 +213,7 @@ const Board = () => {
     { headers: { "Content-Type": "application/json" }}
   );
 
-    const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {     // tuen: 1 is red, 0 is black 
+    const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {     // tuen: 1 is red, -1 is black 
       username: username,
       turn: turn
     }, 
@@ -250,7 +250,7 @@ const Board = () => {
   useEffect(() => {
     console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
     
-    if (turn === 0  && playerMoved) {
+    if (turn === -1  && playerMoved) {
         console.log("AI_Turn is being called!");
         AI_Turn();
     }
