@@ -213,7 +213,7 @@ const Board = () => {
     { headers: { "Content-Type": "application/json" }}
   );
 
-    const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {     // tuen: 1 is red, 0 is black 
+    const response_new_turn = await axios.post(`http://localhost:8000/flip_turn`, {     // tuen: 1 is red, -1 is black 
       username: username,
       turn: turn
     }, 
@@ -257,83 +257,87 @@ const Board = () => {
 }, [turn, playerMoved]);
 
   return (
-    <div className="xiangqi-board">
-      <div className="board-lines">
-        {gameOver && <div className="game-over">Game Over!</div>}
-        {/* Horizontal Lines */}
-        {Array.from({ length: rows }).map((_, i) => (
-          <div
-            key={`h-${i}`}
-            className="line horizontal"
-            style={{ top: `${(i / (rows - 1)) * 100}%` }}
-          />
-        ))}
-        {/* Vertical Lines */}
-        {Array.from({ length: cols }).map((_, i) => (
-          <div
-            key={`v-${i}`}
-            className="line vertical"
-            style={{ left: `${(i / (cols - 1)) * 100}%` }}
-          />
-        ))}
+    <div className="xiangqi-container">
+      <div className={`user-box left ${turn === 1 ? 'active-turn' : ''}`}>User: {username}</div>
+      <div className="xiangqi-board">
+        <div className="board-lines">
+          {gameOver && <div className="game-over">Game Over!</div>}
+          {/* Horizontal Lines */}
+          {Array.from({ length: rows }).map((_, i) => (
+            <div
+              key={`h-${i}`}
+              className="line horizontal"
+              style={{ top: `${(i / (rows - 1)) * 100}%` }}
+            />
+          ))}
+          {/* Vertical Lines */}
+          {Array.from({ length: cols }).map((_, i) => (
+            <div
+              key={`v-${i}`}
+              className="line vertical"
+              style={{ left: `${(i / (cols - 1)) * 100}%` }}
+            />
+          ))}
+        </div>
+        {Array.isArray(board) &&
+          board.map((row, rowIndex) =>
+
+            Array.isArray(row) &&
+            row.map((piece, colIndex) => {
+
+              const isLegalMove = legalMoves.some(([r, c]) => r === rowIndex && c === colIndex);
+
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className={`
+                  ${piece < 0 ? "piece black" : ""} 
+
+                  ${piece > 0 ? "piece red" : ""} 
+
+                  ${isLegalMove ? "legal-move" : ""}`}
+
+                  onClick={() => {
+                    if (gameOver) return;
+
+                    if (piece !== 0) {
+                      if (!selectedPiece)
+                        handlePieceClick(rowIndex, colIndex, piece, board);
+
+                      else if(selectedPiece && piece === selectedPiece.piece) // cancel
+                        cancelPieceClick(piece);
+
+                      else if(selectedPiece && piece !== selectedPiece.piece
+                        && Math.sign(piece) === Math.sign(selectedPiece.piece)
+                      ) // reselect
+                      {
+                        cancelPieceClick(piece);
+                        handlePieceClick(rowIndex, colIndex, piece, board);
+                      }
+
+                      else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece.piece))
+                        handleMoveClick(rowIndex, colIndex);
+                    } else {
+                      if (isLegalMove) {
+                        handleMoveClick(rowIndex, colIndex);
+                      }
+                    }
+                  }}
+
+                  style={{
+                    position: "absolute",
+                    left: `${(colIndex / (cols - 1)) * 100}%`,
+                    top: `${(rowIndex / (rows - 1)) * 100}%`,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  {pieceMapping[piece.toString()]}
+                </div>
+              );
+            })
+          )}
       </div>
-      {Array.isArray(board) &&
-        board.map((row, rowIndex) =>
-
-          Array.isArray(row) &&
-          row.map((piece, colIndex) => {
-
-            const isLegalMove = legalMoves.some(([r, c]) => r === rowIndex && c === colIndex);
-
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={`
-                ${piece < 0 ? "piece black" : ""} 
-
-                ${piece > 0 ? "piece red" : ""} 
-
-                ${isLegalMove ? "legal-move" : ""}`}
-
-                onClick={() => {
-                  if (gameOver) return;
-
-                  if (piece !== 0) {
-                    if (!selectedPiece)
-                      handlePieceClick(rowIndex, colIndex, piece, board);
-
-                    else if(selectedPiece && piece === selectedPiece.piece) // cancel
-                      cancelPieceClick(piece);
-
-                    else if(selectedPiece && piece !== selectedPiece.piece
-                      && Math.sign(piece) === Math.sign(selectedPiece.piece)
-                    ) // reselect
-                    {
-                      cancelPieceClick(piece);
-                      handlePieceClick(rowIndex, colIndex, piece, board);
-                    }
-
-                    else if (selectedPiece && Math.sign(piece) !== Math.sign(selectedPiece.piece))
-                      handleMoveClick(rowIndex, colIndex);
-                  } else {
-                    if (isLegalMove) {
-                      handleMoveClick(rowIndex, colIndex);
-                    }
-                  }
-                }}
-
-                style={{
-                  position: "absolute",
-                  left: `${(colIndex / (cols - 1)) * 100}%`,
-                  top: `${(rowIndex / (rows - 1)) * 100}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                {pieceMapping[piece.toString()]}
-              </div>
-            );
-          })
-        )}
+      <div className={`user-box right ${turn === -1 ? 'active-turn' : ''}`}>Bot</div>
     </div>
   );
 };

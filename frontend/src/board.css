@@ -1,10 +1,19 @@
+.xiangqi-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  gap: 30px;
+}
+
 .xiangqi-board {
   position: relative;
   width: 450px;
   height: 500px;
   background-color: #f5d7aa;
   border: 2px solid #333;
-  margin: 20px auto;
+  gap: 20px;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -62,4 +71,48 @@
   width: 40px;
   height: 40px;
   position: absolute;
+}
+
+body {
+  background-color: lightyellow;
+}
+
+
+.user-box {
+  position: relative;
+  width: 120px;
+  height: 200px;
+  background-color: #fff3cd;
+  border: 1px solid #999;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.user-box.active-turn::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid; /* arrow color */
+}
+
+.user-box.left.active-turn::before {
+  border-bottom-color: red;
+}
+
+.user-box.right.active-turn::before {
+  border-bottom-color: black;
+}
+
+.user-box.left {
+  color: #d51212;
+}
+
+.user-box.right {
+  /* Optional separate styling */
 }
