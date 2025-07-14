@@ -25,18 +25,29 @@ const UsernamePrompt = () => {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-        <form onSubmit={handleSubmit}>
-          <h2>Choose your username</h2>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter username"
-            required
-          />
-          <button type="submit">Submit</button>
-        </form>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Top heading */}
+      <div style={{ minHeight: "100vh", 
+        display: "flex", 
+        flexDirection: "column", 
+        justifyContent: "center", 
+        alignItems: "center",
+         }}>
+      <form onSubmit={handleSubmit} style={{ textAlign: "center" }}>
+        <h1 style={{ marginBottom: "20px" }}>Welcome to MCTs AI</h1> {/* 👈 Now inside form */}
+        <p style={{ marginBottom: "15px" }}>Choose your username</p>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter username"
+          required
+          style={{ padding: "10px", fontSize: "16px", marginBottom: "10px", width: "200px", marginRight: "7px" }}
+        />
+        
+        <button type="submit" style={{ padding: "10px 20px", fontSize: "16px" }}>Submit</button>
+      </form>
+    </div>
     </div>
   );
 };
