@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserContext } from "./UserContext";
 import axios from "axios"
 import './board.css';
@@ -22,6 +23,9 @@ const Board = () => {
   const { username } = useContext(UserContext);
   const [playerMoved, setPlayerMoved] = useState(false);
   const [isCheckmate, setIsCheckmate] = useState(false);
+
+  const navigate = useNavigate();
+
 
   const getBoard = async () => {
     if (!username || gameOver) return;
@@ -258,6 +262,15 @@ const Board = () => {
 
   return (
     <div className="xiangqi-container">
+      {gameOver && (
+      <div className="popup-overlay">
+        <div className="popup-content">
+          <h2>{turn === 1 ? 'You Lost!' : 'You Won!'}</h2>
+          <button onClick={() => navigate('/')}>Start Over</button>
+        </div>
+      </div>
+    )}
+
       <div className={`user-box left ${turn === 1 ? 'active-turn' : ''}`}>User: {username}</div>
       <div className="xiangqi-board">
         <div className="board-lines">
