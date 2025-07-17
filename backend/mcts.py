@@ -3,7 +3,6 @@ import torch
 import torch.nn.functional as F
 import piece_move
 import math
-import piece_move
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):

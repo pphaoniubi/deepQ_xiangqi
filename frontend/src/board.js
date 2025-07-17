@@ -23,6 +23,8 @@ const Board = () => {
   const { username } = useContext(UserContext);
   const [playerMoved, setPlayerMoved] = useState(false);
   const [isCheckmate, setIsCheckmate] = useState(false);
+  const [userSteps, setUserSteps] = useState(0);
+  const [botSteps, setBotSteps] = useState(0);
 
   const navigate = useNavigate();
 
@@ -107,6 +109,8 @@ const Board = () => {
             }
         }
 
+        setBotSteps(prev => prev + 1);
+
         if (originalRow === -1 || originalCol === -1) {
             console.error("Error: AI piece not found on the board!");
             return;
@@ -145,8 +149,6 @@ const Board = () => {
     }
 };
 
-
-
   const handlePieceClick = async (rowIndex, colIndex, piece, board) => {
     if (piece <= 0 || gameOver) return;
 
@@ -161,6 +163,7 @@ const Board = () => {
       // console.log("Checking AI_Turn: turn =", turn, ", playerMoved =", playerMoved);
       return;
     }
+
     setTurn(turnResponse.data.turn);
     console.log("checking turn ", turnResponse.data.turn);
   
@@ -209,7 +212,7 @@ const Board = () => {
     newBoard[selectedPiece.row][selectedPiece.col] = 0;
 
     setBoard(newBoard);
-    
+    setUserSteps(prev => prev + 1);
     await axios.post(`http://localhost:8000/save_board`, {
       username: username,
       board: newBoard
@@ -271,7 +274,10 @@ const Board = () => {
       </div>
     )}
 
-      <div className={`user-box left ${turn === 1 ? 'active-turn' : ''}`}>User: {username}</div>
+      <div className={`user-box left ${turn === 1 ? 'active-turn' : ''}`}>
+        User: {username} <br /><br />
+        Steps: {userSteps}  
+      </div>
       <div className="xiangqi-board">
         <div className="board-lines">
           {gameOver && <div className="game-over">Game Over!</div>}
@@ -350,7 +356,10 @@ const Board = () => {
             })
           )}
       </div>
-      <div className={`user-box right ${turn === -1 ? 'active-turn' : ''}`}>Bot</div>
+      <div className={`user-box right ${turn === -1 ? 'active-turn' : ''}`}>
+        Bot <br /><br />
+        Steps: {botSteps}
+      </div>
     </div>
   );
 };
