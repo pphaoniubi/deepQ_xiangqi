@@ -167,28 +167,24 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
 def train_step(net, batch, device, optimizer=None):
     states, pis, zs = zip(*batch)
     states = torch.stack(states).to(device)
-    target_pis = torch.stack(pis).to(device)  # [B, num_actions]
+    target_pis = torch.stack(pis).to(device)
     target_zs = torch.tensor(zs).float().to(device)
 
-    pred_logits, pred_zs = net(states)  # pred_logits: [B, num_actions]
+    pred_logits, pred_zs = net(states)
     
     pred_log_probs = F.log_softmax(pred_logits, dim=1)
-    pred_probs = pred_log_probs.exp()  # convert to probs
+    pred_probs = pred_log_probs.exp()
 
-    # ---- Compute policy loss ----
     loss_policy = F.kl_div(pred_log_probs, target_pis, reduction='batchmean')
 
-    # ---- Compute value loss ----
     loss_value = F.mse_loss(pred_zs.squeeze(), target_zs)
 
-    # ---- Total loss ----
     loss = loss_policy + loss_value
 
-    # ---- Compute policy entropy ----
     eps = 1e-8
     policy_entropy = - (pred_probs * (pred_probs + eps).log()).sum(dim=1).mean().item()
 
-    # ---- Update ----
+
     if optimizer is None:
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 
