@@ -131,7 +131,6 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
         root = MCTSNode(state)
         run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulations)
 
-        # Build MCTS policy π
         visit_counts = {a: child.visit_count for a, child in root.children.items()}
         total_visits = sum(visit_counts.values())
         pi = np.zeros(net.policy_output_size)
@@ -139,20 +138,16 @@ def simulate_game_with_mcts(net, device, legal_actions_fn, apply_action_fn, init
         for a, count in visit_counts.items():
             pi[a] = count / total_visits
 
-        # Save training example
         state_tensor = torch.tensor(state).float().to(device)
         game_data.append((state_tensor, pi, turn))
 
-        # Choose action to play
         action = np.random.choice(list(visit_counts.keys()), p=[count / total_visits for count in visit_counts.values()])
         state = apply_action_fn(state, action)
         turn *= -1
         move_count += 1
 
-    # Determine final result
     result = is_terminal_fn(state)
 
-    # Assign final value z
     result = is_terminal_fn(state)
     if move_count > max_move:
         result = 0

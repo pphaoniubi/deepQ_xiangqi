@@ -6,12 +6,12 @@ import math
 
 class MCTSNode:
     def __init__(self, state, parent=None, prior=0.0):
-        self.state = state              # e.g., a NumPy array representing the board
-        self.parent = parent            # parent MCTSNode
-        self.children = {}             # action -> child MCTSNode
+        self.state = state
+        self.parent = parent
+        self.children = {}
         self.visit_count = 0
         self.value_sum = 0.0
-        self.prior = prior             # prior probability from the policy network
+        self.prior = prior
 
     def value(self):
         if self.visit_count == 0:
@@ -23,13 +23,11 @@ class MCTSNode:
         best_child = None
 
         for action, child in self.children.items():
-            # Compute average value safely
             if child.visit_count > 0:
                 q_value = child.value_sum / child.visit_count
             else:
                 q_value = 0.0
 
-            # UCT/PUCT score
             uct_score = q_value + child.prior * (math.sqrt(self.visit_count) / (1 + child.visit_count))
 
             if uct_score > best_score:
@@ -67,10 +65,10 @@ def backpropagate(path, value):
     for node in reversed(path):
         node.visit_count += 1
         node.value_sum += value
-        value = -value  # Switch perspective for alternating turns
+        value = -value
 
 def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device):
-    # 1. Prepare batched state tensor
+
     states = []
     for node, _ in leaf_nodes:
         if torch.is_tensor(node.state):
@@ -79,21 +77,18 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
             states.append(torch.tensor(node.state, dtype=torch.float32).unsqueeze(0))
     state_batch = torch.cat(states).to(device)
 
-    # 1. Get logits (not softmaxed yet)
-    with torch.no_grad():
-        policy_logits, values = net(state_batch)  # logits: (B, 8100)
 
-    # 2. Convert to NumPy safely
+    with torch.no_grad():
+        policy_logits, values = net(state_batch)
+
     policy_logits = policy_logits.cpu().numpy()
     values = values.cpu().numpy()
 
-    # 3. Apply softmax + masking per sample
     for (node, path), logits, value in zip(leaf_nodes, policy_logits, values):
         legal_actions = legal_actions_fn(turn, node.state)
 
         probs = piece_move.masked_softmax(logits, np.array(legal_actions, dtype=np.int32))
 
-        # Store children
         for a in legal_actions:
             next_state = apply_action_fn(node.state, a)
             node.children[a] = MCTSNode(next_state, parent=node, prior=probs[a])
@@ -102,7 +97,7 @@ def expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, devic
 
 def ucb_score(parent_visits, value, prior, visit_count, c_puct=1.0):
     if visit_count == 0:
-        return float('inf')  # ensures every child is visited at least once
+        return float('inf')
     q = value
     u = c_puct * prior * math.sqrt(parent_visits) / (1 + visit_count)
     return q + u
@@ -136,28 +131,24 @@ def run_mcts(root, net, turn, legal_actions_fn, apply_action_fn, device, simulat
         path = [node]
 
         while node.children:
-            # Build flat dicts for Cython input
             values = {a: child.value() for a, child in node.children.items()}
             priors = {a: child.prior for a, child in node.children.items()}
             visit_counts = {a: child.visit_count for a, child in node.children.items()}
 
-            # Call Cython-accelerated selection
             action = select_child(
                 node.children,
                 node.visit_count,
                 values,
                 priors,
                 visit_counts,
-                c_puct=1.0  # you can make this tunable
+                c_puct=1.0
             )
 
-            # Get selected child
             node = node.children[action]
             path.append(node)
 
         leaf_nodes.append((node, path))
 
-    # Batch evaluate all leaf nodes
     expand_batch(leaf_nodes, net, turn, legal_actions_fn, apply_action_fn, device)
 
     return root
